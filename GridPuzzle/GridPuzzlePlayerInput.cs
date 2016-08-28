@@ -3,12 +3,12 @@ using System.Collections;
 
 public class GridPuzzlePlayerInput : DSTools.MessengerListener
 {
-	public GridPuzzleActor actor;
+	public GridPuzzlePlayerController player;
 
 	// Use this for initialization
 	void Start ()
 	{
-		this.actor = this.gameObject.GetComponent<GridPuzzleActor>();
+		this.player = this.gameObject.GetComponent<GridPuzzlePlayerController>();
 		this.InitMessenger("GridPuzzlePlayerInput");
 	}
 	
@@ -24,7 +24,7 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 		{
 		case "NodeSelected":
 			GridPuzzleNode node = obj1 as GridPuzzleNode;
-			actor.MoveTo(node);
+			player.MoveTo(node);
 			break;
 		}
 	}

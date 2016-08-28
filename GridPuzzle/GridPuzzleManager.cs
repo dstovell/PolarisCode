@@ -81,7 +81,6 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		}
 
 		this.loadedActors.Add(actor);
-		instance.SetActive(false);
 
 		return actor;
 	}
