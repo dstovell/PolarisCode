@@ -34,8 +34,11 @@ public class GridPuzzleManager : DSTools.MessengerListener
 	public GameObject [] puzzlePrefabs;
 	public GameObject [] nodePrefabs;
 	public GameObject [] nodeGroupPrefabs;
+	public GameObject [] teleporterPrefabs;
+	public GameObject [] sideWallPrefabs;
 
 	private GridPuzzleActor player;
+	private GridPuzzlePortal spawnPortal;
 	private List<GridPuzzleActor> loadedActors = new List<GridPuzzleActor>();
 
 	private Dictionary<PuzzlePosition, GridPuzzle> puzzlePositions = new Dictionary<PuzzlePosition, GridPuzzle>();
@@ -65,6 +68,7 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		if (current != null)
 		{
 			Transform currentSpawn = current.GetSpawn();
+			this.spawnPortal = currentSpawn.gameObject.GetComponent<GridPuzzlePortal>();
 			this.player = this.LoadActor(this.playerPrefab, currentSpawn);
 		}
 	}
@@ -81,6 +85,8 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		}
 
 		this.loadedActors.Add(actor);
+
+		this.spawnPortal.TriggerInFX();
 
 		return actor;
 	}
@@ -135,12 +141,16 @@ public class GridPuzzleManager : DSTools.MessengerListener
 	public void GeneratePrefab()
 	{
 		GridPuzzle.Settings settings = new GridPuzzle.Settings();
+		settings.nodePrefabs = this.nodePrefabs;
+		settings.teleporterPrefabs = this.teleporterPrefabs;
+		settings.sideWallPrefabs = this.sideWallPrefabs;
+
 		settings.GridHeight = this.GridHeight;
 		settings.GridWidth = this.GridWidth;
 		settings.GridNodeHeight = this.GridNodeHeight;
 		settings.GridNodeWidth = this.GridNodeWidth;
 
-		GridPuzzle.GeneratePrefab( this.nodePrefabs, settings );
+		GridPuzzle.GeneratePrefab( settings );
 	}
 
 	public GridPuzzle LoadPuzzle(GameObject prefab, PuzzlePosition positionOverride)
@@ -176,7 +186,7 @@ public class GridPuzzleManager : DSTools.MessengerListener
 
 	private void LoadRequiredPuzzles()
 	{
-		foreach(PuzzlePosition pos in System.Enum.GetValues(typeof(PuzzlePosition)))
+		/*foreach(PuzzlePosition pos in System.Enum.GetValues(typeof(PuzzlePosition)))
 		{
 			if (pos > PuzzlePosition.None)
 			{
@@ -185,6 +195,11 @@ public class GridPuzzleManager : DSTools.MessengerListener
 					this.LoadPuzzle( this.PickRandomPrefab(this.puzzlePrefabs), pos );
 				}
 			}
+		}*/
+
+		if (!this.puzzlePositions.ContainsKey(PuzzlePosition.Current))
+		{
+			this.LoadPuzzle( this.PickRandomPrefab(this.puzzlePrefabs), PuzzlePosition.Current );
 		}
 	}
 

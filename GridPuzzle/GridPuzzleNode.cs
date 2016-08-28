@@ -38,9 +38,9 @@ public class GridPuzzleNode : DSTools.MessengerListener
 		return array[randomIndex];
     }
 
-	static public GridPuzzleNode GeneratePrefab(GameObject [] nodePrefabs, GridPuzzle.Settings settings, Vector3 position)
+	static public GridPuzzleNode GeneratePrefab(GridPuzzle.Settings settings, Vector3 position)
 	{
-		GameObject nodeObj = GameObject.Instantiate(PickRandomPrefab(nodePrefabs), position, Quaternion.identity) as GameObject;
+		GameObject nodeObj = GameObject.Instantiate(PickRandomPrefab(settings.nodePrefabs), position, Quaternion.identity) as GameObject;
 		GridPuzzleNode node = nodeObj.GetComponent<GridPuzzleNode>();
 		if (node == null)
 		{

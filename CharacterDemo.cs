@@ -13,7 +13,7 @@ public class CharacterDemo : MonoBehaviour
 	{
 		Animator anim = this.gameObject.GetComponent<Animator>();
 		anim.SetBool("Run", true);
-		Screen.orientation = ScreenOrientation.Portrait;
+		Screen.orientation = ScreenOrientation.Landscape;
 
 		#if UNITY_EDITOR
 		this.DemoTime = 2f;

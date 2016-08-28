@@ -5,7 +5,6 @@ public class GridPuzzlePortal : MonoBehaviour
 {
 	public GridPuzzlePortal target;
 	public GameObject portalInFX;
-	//public GameObject portalOutFX;
 
 	private IEnumerator EnableForTime(GameObject obj, float time)
     {
@@ -14,22 +13,24 @@ public class GridPuzzlePortal : MonoBehaviour
 		obj.SetActive(false);
     }
 
+	public void TriggerInFX()
+    {
+		if (this.portalInFX != null)
+		{
+			this.StartCoroutine(EnableForTime(this.portalInFX, 0.3f));
+		}
+    }
+
 	void OnTriggerEnter(Collider other)
     {
 		GridPuzzlePlayerController controller = other.gameObject.GetComponent<GridPuzzlePlayerController>();
 		if ((controller != null) && (this.target != null))
 		{
-			if (this.portalInFX != null)
-			{
-				this.StartCoroutine(EnableForTime(this.portalInFX, 0.3f));
-			}
+			this.TriggerInFX();
 
 			controller.TeleportTo(this.target.gameObject);
 
-			if (target.portalInFX != null)
-			{
-				this.StartCoroutine(EnableForTime(target.portalInFX, 0.3f));
-			}
+			target.TriggerInFX();
 		}
     }
 }
