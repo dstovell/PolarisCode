@@ -71,7 +71,7 @@ public class GridPuzzleManager : DSTools.MessengerListener
 
 	public GridPuzzleActor LoadActor(GameObject prefab, Transform spawn)
 	{
-		Debug.Log("LoadActor " + prefab.name + " pos=" + spawn.position.x + "," + spawn.position.y + "," + spawn.position.z);
+		//Debug.Log("LoadActor " + prefab.name + " pos=" + spawn.position.x + "," + spawn.position.y + "," + spawn.position.z);
 		GameObject instance = GameObject.Instantiate(prefab, spawn.position, spawn.rotation) as GameObject;
 		GridPuzzleActor actor = instance.GetComponent<GridPuzzleActor>();
 		if (actor == null)
@@ -145,7 +145,7 @@ public class GridPuzzleManager : DSTools.MessengerListener
 
 	public GridPuzzle LoadPuzzle(GameObject prefab, PuzzlePosition positionOverride)
 	{
-		Debug.Log("LoadPuzzel " + prefab.name + " in position " + positionOverride.ToString());
+		//Debug.Log("LoadPuzzel " + prefab.name + " in position " + positionOverride.ToString());
 
 		GameObject instance = GameObject.Instantiate(prefab, this.GetDesiredPosition(positionOverride), Quaternion.identity) as GameObject;
 		GridPuzzle puzzle = instance.GetComponent<GridPuzzle>();

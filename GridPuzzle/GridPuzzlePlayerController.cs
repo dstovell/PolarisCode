@@ -203,6 +203,13 @@ public class GridPuzzlePlayerController : DSTools.MessengerListener
 		this.SetState(State.Run);
 	}
 
+	public void TeleportTo(GameObject location)
+	{
+		this.transform.position = location.transform.position;
+		this.transform.rotation = location.transform.rotation;
+		this.Stop();
+	}
+
 	public void Stop()
 	{
 		this.movePath = null;
