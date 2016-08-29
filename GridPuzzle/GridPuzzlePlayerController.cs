@@ -85,6 +85,7 @@ public class GridPuzzlePlayerPath
 public class GridPuzzlePlayerController : DSTools.MessengerListener
 {
 	public float MoveSpeed = 1f;
+	public float RotateSpeed = 1f;
 
 	public enum State
 	{
@@ -94,16 +95,33 @@ public class GridPuzzlePlayerController : DSTools.MessengerListener
 	};
 	public State currentState;
 
+	public enum Surface
+	{
+		Floor,
+		Ceiling,
+	}
+	public Surface currentSurface;
+
+	public MagneticCharge currentCharge = MagneticCharge.None;
+
+	public GridPuzzleNode currentNode = null;
+
+	private Rigidbody rb;
+
 	private Animator anim;
 
 	private GridPuzzlePlayerPath movePath;
+
+	public Quaternion desiredRotation;
 
 	// Use this for initialization
 	void Start() 
 	{
 		this.InitMessenger("GridPuzzlePlayerController");
 		this.currentState = State.Idle;
+		this.currentSurface = Surface.Floor;
 		this.anim = this.gameObject.GetComponent<Animator>();
+		this.rb = this.gameObject.GetComponent<Rigidbody>();
 	}
 
 	public void SetState(State newState)
@@ -131,6 +149,8 @@ public class GridPuzzlePlayerController : DSTools.MessengerListener
 
 	void Update () 
 	{
+		UpdateGravity();
+
 		switch(this.currentState)
 		{
 		case State.Idle:
@@ -143,20 +163,49 @@ public class GridPuzzlePlayerController : DSTools.MessengerListener
 			break;
 		}
 
+		Vector3 desiredLookDirection = (this.movePath != null) ? this.movePath.GetDirection() : this.transform.forward;
+		Vector3 upDirection = Vector3.up; //(this.currentSurface == Surface.Ceiling) ? Vector3.down : Vector3.up;
+		this.desiredRotation = Quaternion.LookRotation(desiredLookDirection, upDirection);
+
+		//TODO: Make turnaround more graceful??
+		this.rb.rotation = this.desiredRotation; //Quaternion.RotateTowards(this.transform.rotation, this.desiredRotation, this.RotateSpeed*Time.deltaTime);
+
 		if (this.IsMoving())
 		{
-			Vector3 desiredDir = this.movePath.GetDirection();
-			if (!this.IsFacing(desiredDir))
-			{
-				Vector3 dir = Vector3.RotateTowards(this.transform.forward, desiredDir, 0.1f, 0.1f);
-				this.transform.rotation = Quaternion.LookRotation(dir, this.transform.up);
-			}
-			else if (this.IsPlaying("Run"))
+			if (this.IsPlaying("Run"))
 			{
 				this.transform.position = this.movePath.Move(this.MoveSpeed, Time.deltaTime);
 				if (this.movePath.isDone)
 				{
 					Stop();
+				}
+			}
+		}
+
+
+	}
+
+	public void UpdateGravity()
+	{
+		if (this.currentNode != null)
+		{
+			Vector3 gravity = this.currentNode.EvaluateMagneticGravity(this) * 9.8f * this.rb.mass;
+			this.rb.AddForce(gravity);
+
+			if (this.currentSurface == Surface.Floor)
+			{
+				if (gravity.y > 0f)
+				{
+					this.currentSurface = Surface.Ceiling;
+					this.Stop();
+				}
+			}
+			else if (this.currentSurface == Surface.Ceiling)
+			{
+				if (gravity.y < 0f)
+				{
+					this.currentSurface = Surface.Floor;
+					this.Stop();
 				}
 			}
 		}

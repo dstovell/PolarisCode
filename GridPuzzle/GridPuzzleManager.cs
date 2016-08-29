@@ -56,6 +56,8 @@ public class GridPuzzleManager : DSTools.MessengerListener
 	// Use this for initialization
 	void Start () 
 	{
+		this.InitMessenger("GridPuzzleManager");
+
 		this.puzzlePositionObjects[PuzzlePosition.Current] = GameObject.Instantiate(this.positonPrefab, Vector3.zero, Quaternion.identity) as GameObject;
 		this.puzzlePositionObjects[PuzzlePosition.Top] = GameObject.Instantiate(this.positonPrefab, new Vector3(0f, this.PuzzleHeight, 0f), Quaternion.identity) as GameObject;
 		this.puzzlePositionObjects[PuzzlePosition.Bottom] = GameObject.Instantiate(this.positonPrefab, new Vector3(0f, -1f*this.PuzzleHeight, 0f), Quaternion.identity) as GameObject;
@@ -173,6 +175,11 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		return puzzle;
 	}
 
+	public void ConnectPuzzle(GridPuzzle source, GridPuzzle destination)
+	{
+		source.exitPoint.target = destination.spawnPoint.GetComponent<GridPuzzlePortal>();
+	}
+
 	private void MarkPuzzleForUnload(GridPuzzle puzzle)
 	{
 		puzzle.MarkForDelete();
@@ -201,12 +208,18 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		{
 			this.LoadPuzzle( this.PickRandomPrefab(this.puzzlePrefabs), PuzzlePosition.Current );
 		}
+
+		if (!this.puzzlePositions.ContainsKey(PuzzlePosition.Top))
+		{
+			this.LoadPuzzle( this.PickRandomPrefab(this.puzzlePrefabs), PuzzlePosition.Top );
+			this.ConnectPuzzle(this.GetPuzzle(PuzzlePosition.Current), this.GetPuzzle(PuzzlePosition.Top));
+		}
 	}
 
 	private void MakePosition(GridPuzzle puzzle, PuzzlePosition pos)
 	{
 		if (pos != PuzzlePosition.None)
-		{
+		{ 
 			this.puzzlePositions[pos] = puzzle;
 			puzzle.SetPosition(pos);
 		}
@@ -214,15 +227,20 @@ public class GridPuzzleManager : DSTools.MessengerListener
 
 	private void ChangePosition(PuzzlePosition oldPos, PuzzlePosition newPos)
 	{
+		if (!this.puzzlePositions.ContainsKey(oldPos))
+		{
+			return;
+		}
+
 		if (newPos == PuzzlePosition.None)
 		{
 			this.MarkPuzzleForUnload( this.puzzlePositions[oldPos] );
-			this.puzzlePositions.Remove(oldPos);
 		}
 		else
 		{
 			this.MakePosition(this.puzzlePositions[oldPos], newPos);
 		}
+		this.puzzlePositions.Remove(oldPos);
 	}
 
 	private void ChangePuzzle(PuzzlePosition newPuzzlePosition)
@@ -270,4 +288,22 @@ public class GridPuzzleManager : DSTools.MessengerListener
 
 		return array[randomIndex];
     }
+
+	public override void OnMessage(string id, object obj1, object obj2)
+	{
+		switch(id)
+		{
+		case "OnTeleportedTo":
+			GridPuzzle puzzle = obj1 as GridPuzzle;
+			GameObject obj = obj2 as GameObject;
+			if (obj.GetComponent<GridPuzzlePlayerController>() != null)
+			{
+				if (puzzle.GetPosition() != PuzzlePosition.Current)
+				{
+					this.ChangePuzzle(puzzle.GetPosition());
+				}
+			}
+			break;
+		}
+	}
 }

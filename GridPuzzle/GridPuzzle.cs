@@ -45,6 +45,7 @@ public class GridPuzzle : DSTools.MessengerListener
 	}
 
 	public GameObject spawnPoint;
+	public GridPuzzlePortal exitPoint;
 
 	public GridPuzzleManager.PuzzlePosition postion = GridPuzzleManager.PuzzlePosition.None;
 	public GridPuzzleManager.PuzzlePosition previousPosition = GridPuzzleManager.PuzzlePosition.None;
@@ -153,6 +154,8 @@ public class GridPuzzle : DSTools.MessengerListener
 			{
 				lastPortal2.target = portal2;
 				portal1.target = puzzle.spawnPoint.GetComponent<GridPuzzlePortal>();
+				puzzle.exitPoint = portal2;
+				portal2.gameObject.name = "portalExit";
 			}
 
 			portal1.transform.rotation = Quaternion.LookRotation(Vector3.right, portal1.transform.up);
