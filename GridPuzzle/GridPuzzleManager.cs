@@ -23,6 +23,8 @@ public class GridPuzzleManager : DSTools.MessengerListener
 	public float GridNodeHeight;
 	public int GridWidth;
 	public int GridHeight;
+	public float GridFloorHeight;
+	public float GridFloorDepth;
 
 	public float PuzzleMoveSpeed = 1.0f;
 
@@ -31,6 +33,16 @@ public class GridPuzzleManager : DSTools.MessengerListener
 
 	public GameObject playerPrefab;
 	public GameObject positonPrefab;
+
+	public GameObject blankNodePrefab;
+	public GameObject metalFloorPrefab;
+	public GameObject plasticFloorPrefab;
+	public GameObject glassFloorPrefab;
+	public GameObject metalCeilingPrefab;
+	public GameObject plasticCeilingPrefab;
+	public GameObject glassCeilingPrefab;
+	public GameObject [] backWallPrefabs;
+
 	public GameObject [] puzzlePrefabs;
 	public GameObject [] nodePrefabs;
 	public GameObject [] nodeGroupPrefabs;
@@ -143,6 +155,14 @@ public class GridPuzzleManager : DSTools.MessengerListener
 	public void GeneratePrefab()
 	{
 		GridPuzzle.Settings settings = new GridPuzzle.Settings();
+		settings.blankNodePrefab = this.blankNodePrefab;
+		settings.metalFloorPrefab = this.metalFloorPrefab;
+		settings.plasticFloorPrefab = this.plasticFloorPrefab;
+		settings.glassFloorPrefab = this.glassFloorPrefab;
+		settings.metalCeilingPrefab = this.metalCeilingPrefab;
+		settings.plasticCeilingPrefab = this.plasticCeilingPrefab;
+		settings.glassCeilingPrefab = this.glassCeilingPrefab;
+		settings.backWallPrefabs = this.backWallPrefabs;
 		settings.nodePrefabs = this.nodePrefabs;
 		settings.teleporterPrefabs = this.teleporterPrefabs;
 		settings.sideWallPrefabs = this.sideWallPrefabs;
@@ -151,6 +171,8 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		settings.GridWidth = this.GridWidth;
 		settings.GridNodeHeight = this.GridNodeHeight;
 		settings.GridNodeWidth = this.GridNodeWidth;
+		settings.GridFloorHeight = this.GridFloorHeight;
+		settings.GridFloorDepth = this.GridFloorDepth;
 
 		GridPuzzle.GeneratePrefab( settings );
 	}

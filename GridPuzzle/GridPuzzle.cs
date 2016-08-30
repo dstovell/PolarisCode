@@ -1,10 +1,20 @@
 ﻿using UnityEngine;
 using System.Collections;
+using DSTools;
 
-public class GridPuzzle : DSTools.MessengerListener 
+public class GridPuzzle : MessengerListener 
 {
 	public class Settings
 	{
+		public GameObject blankNodePrefab;
+		public GameObject metalFloorPrefab;
+		public GameObject plasticFloorPrefab;
+		public GameObject glassFloorPrefab;
+		public GameObject metalCeilingPrefab;
+		public GameObject plasticCeilingPrefab;
+		public GameObject glassCeilingPrefab;
+		public GameObject [] backWallPrefabs;
+
 		public GameObject [] nodePrefabs;
 		public GameObject [] teleporterPrefabs;
 		public GameObject [] sideWallPrefabs;
@@ -26,6 +36,9 @@ public class GridPuzzle : DSTools.MessengerListener
 		public float GridNodeHeight;
 		public int GridWidth;
 		public int GridHeight;
+
+		public float GridFloorHeight;
+		public float GridFloorDepth;
 
 		public float PuzzleHeight 
 		{
@@ -125,6 +138,30 @@ public class GridPuzzle : DSTools.MessengerListener
 		return obj;
 	}
 
+	/*static public GameObject AddSurface(GridPuzzle.Settings settings, SurfacePosition surfacePos, SurfaceMaterial mat, MagneticCharge charge, Vector3 pos, Vector3 size, GameObject parent)
+	{
+		GameObject obj = GameObject.Instantiate(settings.surfacePrefab, pos, Quaternion.identity) as GameObject;
+		SurfaceComponent surface = obj.GetComponent<SurfaceComponent>();
+		BoxCollider collider = obj.GetComponent<BoxCollider>();
+		if (surface == null)
+		{
+			GameObject.Destroy(obj);
+			return null;
+		}
+
+		surface.SurfacePos = surfacePos;
+		surface.SetMaterial(mat);
+		surface.SetCharge(charge);
+
+		obj.transform.localScale = size;
+
+		if (parent != null)
+		{
+			obj.transform.SetParent(parent.transform);
+		}
+		return obj;
+	}*/
+
 	static public GridPuzzle GeneratePrefab(GridPuzzle.Settings settings)
 	{
 		GameObject puzzleObj = new GameObject("GridPuzzle");
@@ -140,9 +177,9 @@ public class GridPuzzle : DSTools.MessengerListener
 			GridPuzzleNodeGroup newGroup = GridPuzzleNodeGroup.GeneratePrefab(settings, groupHeight, groupWidth, pos);
 			newGroup.gameObject.transform.parent = puzzleObj.transform;
 
-			Vector3 portal1Pos = new Vector3(-0.5f*settings.PuzzleWidth, pos.y-1.55f, 1f);
+			Vector3 portal1Pos = new Vector3(-0.5f*settings.PuzzleWidth, pos.y-1.6f, 1f);
 			GridPuzzlePortal portal1 = AddRandomPortal(settings, portal1Pos, newGroup.gameObject);
-			Vector3 portal2Pos = new Vector3(0.5f*settings.PuzzleWidth-settings.GridNodeWidth, pos.y-1.5f, 1f);
+			Vector3 portal2Pos = new Vector3(0.5f*settings.PuzzleWidth-settings.GridNodeWidth, pos.y-1.6f, 1f);
 			GridPuzzlePortal portal2 = AddRandomPortal(settings, portal2Pos, newGroup.gameObject);
 
 			if (lastPortal2 == null)
@@ -154,8 +191,8 @@ public class GridPuzzle : DSTools.MessengerListener
 			{
 				lastPortal2.target = portal2;
 				portal1.target = puzzle.spawnPoint.GetComponent<GridPuzzlePortal>();
-				puzzle.exitPoint = portal2;
-				portal2.gameObject.name = "portalExit";
+				puzzle.exitPoint = portal1;
+				portal1.gameObject.name = "portalExit";
 			}
 
 			portal1.transform.rotation = Quaternion.LookRotation(Vector3.right, portal1.transform.up);
@@ -168,6 +205,8 @@ public class GridPuzzle : DSTools.MessengerListener
 		AddRandomPrefab(settings, settings.sideWallPrefabs, wall1Pos, puzzleObj);
 		Vector3 wall2Pos = new Vector3(0.5f*settings.PuzzleWidth+0.2f, -0.5f*settings.PuzzleHeight, 0f);
 		AddRandomPrefab(settings, settings.sideWallPrefabs, wall2Pos, puzzleObj);
+
+		//AddSurface(settings, SurfacePosition.Floor, SurfaceMaterial.Metal, MagneticCharge.None, Vector3.zero, new Vector3(settings.GridNodeWidth, settings.GridFloorHeight, settings.GridFloorDepth), puzzleObj);
 
 		return puzzle;
 	}

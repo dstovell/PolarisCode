@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using DSTools;
 
 public class GridPuzzlePlayerPathNode
 {
@@ -82,7 +83,7 @@ public class GridPuzzlePlayerPath
 }
 
 
-public class GridPuzzlePlayerController : DSTools.MessengerListener
+public class GridPuzzlePlayerController : MessengerListener
 {
 	public float MoveSpeed = 1f;
 	public float RotateSpeed = 1f;

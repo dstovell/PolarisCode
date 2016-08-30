@@ -10,7 +10,7 @@ public class GridPuzzlePortal : MonoBehaviour
 
 	void Start()
 	{
-		this.parentPuzzle =  this.transform.parent.gameObject.GetComponent<GridPuzzle>();
+		this.parentPuzzle = this.gameObject.GetComponentInParent<GridPuzzle>();
 	}
 
 	private IEnumerator EnableForTime(GameObject obj, float time)
