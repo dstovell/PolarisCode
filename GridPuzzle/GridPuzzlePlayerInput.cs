@@ -26,6 +26,11 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 			GridPuzzleNode node = obj1 as GridPuzzleNode;
 			player.MoveTo(node);
 			break;
+
+		case "CubeSelected":
+			GridPuzzleCube cube = obj1 as GridPuzzleCube;
+			player.MoveTo(cube);
+			break;
 		}
 	}
 }

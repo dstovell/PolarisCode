@@ -19,6 +19,8 @@ public class GridPuzzle : MessengerListener
 		public GameObject [] teleporterPrefabs;
 		public GameObject [] sideWallPrefabs;
 
+		public GameObject [] cubePrefabs;
+
 		public GameObject PickRandomPrefab(GameObject [] array)
 	    {
 			int count = array.Length;
@@ -36,6 +38,7 @@ public class GridPuzzle : MessengerListener
 		public float GridNodeHeight;
 		public int GridWidth;
 		public int GridHeight;
+		public int GridDepth;
 
 		public float GridFloorHeight;
 		public float GridFloorDepth;
@@ -59,6 +62,9 @@ public class GridPuzzle : MessengerListener
 
 	public GameObject spawnPoint;
 	public GridPuzzlePortal exitPoint;
+	public GridPuzzleCubeRow [] rows;
+
+	public GridPuzzleCamera.Angle currentAngle = GridPuzzleCamera.Angle.None;
 
 	public GridPuzzleManager.PuzzlePosition postion = GridPuzzleManager.PuzzlePosition.None;
 	public GridPuzzleManager.PuzzlePosition previousPosition = GridPuzzleManager.PuzzlePosition.None;
@@ -74,6 +80,24 @@ public class GridPuzzle : MessengerListener
 	void Update () 
 	{
 	
+	}
+
+	public void OnCameraAngleChange(GridPuzzleCamera.Angle angle)
+	{
+		if (this.currentAngle != angle)
+		{
+			this.currentAngle = angle;
+			if (this.rows != null)
+			{
+				for (int i=0; i<this.rows.Length; i++)
+				{
+					if (this.rows[i] != null)
+					{
+						this.rows[i].OnCameraAngleChange(angle);
+					}
+				}
+			}
+		}
 	}
 
 	public GridPuzzleManager.PuzzlePosition GetPosition()
@@ -163,6 +187,49 @@ public class GridPuzzle : MessengerListener
 	}*/
 
 	static public GridPuzzle GeneratePrefab(GridPuzzle.Settings settings)
+	{
+		GameObject puzzleObj = new GameObject("GridPuzzle");
+		puzzleObj.transform.position = Vector3.zero;
+		GridPuzzle puzzle = puzzleObj.AddComponent<GridPuzzle>();
+		int rowLength = settings.GridDepth;
+
+		puzzle.rows = new GridPuzzleCubeRow[settings.GridWidth*settings.GridHeight];
+
+		int widthOffset = -1 * Mathf.FloorToInt((float)settings.GridWidth/2f);
+		int heightOffset = -1 * Mathf.FloorToInt((float)settings.GridHeight/2f);
+
+		int rowIndex = 0;
+		for (int j=0; j<settings.GridHeight; j++)
+		{
+			for (int i=0; i<settings.GridWidth; i++)
+			{
+				Vector3 pos = new Vector3(i+widthOffset, j+heightOffset, 0f);
+
+				bool addCubes = (j == 0) || (j == (settings.GridHeight-1));
+
+				GridPuzzleCubeRow newRow = GridPuzzleCubeRow.GeneratePrefab(settings, rowLength, pos, addCubes);
+				newRow.gameObject.transform.SetParent(puzzleObj.transform);
+				puzzle.rows[rowIndex] = newRow;
+				rowIndex++;
+			}
+		}
+		float portalHeight = 0.5f + (float)heightOffset;
+		Vector3 portal1Pos = new Vector3(widthOffset, portalHeight, 0f);
+		GridPuzzlePortal portal1 = AddRandomPortal(settings, portal1Pos, puzzleObj);
+		portal1.gameObject.name = "portalSpawn";
+		puzzle.spawnPoint = portal1.gameObject;
+
+		Vector3 portal2Pos = new Vector3(-1*widthOffset-1, portalHeight, 0f);
+		GridPuzzlePortal portal2 = AddRandomPortal(settings, portal2Pos, puzzleObj);
+		portal2.gameObject.name = "portalExit";
+		puzzle.exitPoint = portal2;
+
+		puzzle.OnCameraAngleChange(GridPuzzleCamera.Angle.Side2D);
+
+		return puzzle;
+	}
+
+	static public GridPuzzle GeneratePrefabOld(GridPuzzle.Settings settings)
 	{
 		GameObject puzzleObj = new GameObject("GridPuzzle");
 		GridPuzzle puzzle = puzzleObj.AddComponent<GridPuzzle>();

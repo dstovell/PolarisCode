@@ -241,6 +241,20 @@ public class GridPuzzlePlayerController : MessengerListener
 		this.SetState(State.Run);
 	}
 
+	public void MoveTo(GridPuzzleCube cube)
+	{
+		Vector3 pos = this.gameObject.transform.position;
+		Vector3 dest = cube.NavPosition;
+		dest.y = pos.y;
+
+		List<Vector3> points = new List<Vector3>();
+		points.Add(pos);
+		points.Add(dest);
+
+		this.movePath = new GridPuzzlePlayerPath(points);
+		this.SetState(State.Run);
+	}
+
 	public void MovePath(List<GridPuzzleNode> nodes)
 	{
 		List<Vector3> points = new List<Vector3>();

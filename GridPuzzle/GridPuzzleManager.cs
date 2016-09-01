@@ -18,13 +18,19 @@ public class GridPuzzleManager : DSTools.MessengerListener
 	}
 
 	public bool GeneratePrefabNow = false;
+	public bool ChangeCameraAngleNow = false;
 
 	public float GridNodeWidth;
 	public float GridNodeHeight;
-	public int GridWidth;
-	public int GridHeight;
+
 	public float GridFloorHeight;
 	public float GridFloorDepth;
+
+	public int GridHeight;
+	public int GridWidth;
+	public int GridDepth;
+
+	public Vector3 PuzzleBasePosition = Vector3.zero;
 
 	public float PuzzleMoveSpeed = 1.0f;
 
@@ -49,6 +55,8 @@ public class GridPuzzleManager : DSTools.MessengerListener
 	public GameObject [] teleporterPrefabs;
 	public GameObject [] sideWallPrefabs;
 
+	public GameObject [] cubePrefabs;
+
 	private GridPuzzleActor player;
 	private GridPuzzlePortal spawnPortal;
 	private List<GridPuzzleActor> loadedActors = new List<GridPuzzleActor>();
@@ -57,9 +65,38 @@ public class GridPuzzleManager : DSTools.MessengerListener
 	private Dictionary<PuzzlePosition, GameObject> puzzlePositionObjects = new Dictionary<PuzzlePosition, GameObject>();
 	private List<GridPuzzle> loadedPuzzles = new List<GridPuzzle>();
 
+	public GridPuzzleCamera.Angle cameraAngle;
+	public GameObject Side2dCamera;
+	public GameObject IsometricCamera;
+
+	public void SetCameraAngle(GridPuzzleCamera.Angle angle)
+	{
+		this.cameraAngle = angle;
+		for (int i=0; i<this.loadedPuzzles.Count; i++)
+		{
+			this.loadedPuzzles[i].OnCameraAngleChange(angle);
+		}
+
+		if ((this.Side2dCamera != null) && (this.IsometricCamera != null))
+		{
+			if (this.cameraAngle == GridPuzzleCamera.Angle.Side2D)
+			{
+				this.Side2dCamera.SetActive(true);
+				this.IsometricCamera.SetActive(false);
+			}
+			else if (this.cameraAngle == GridPuzzleCamera.Angle.Isometric)
+			{
+				this.Side2dCamera.SetActive(false);
+				this.IsometricCamera.SetActive(true);
+			}
+		}
+	}
+
 	void Awake() 
 	{
 		Instance = this;
+
+		this.cameraAngle = GridPuzzleCamera.Angle.Side2D;
 
 		this.PuzzleHeight = this.GridNodeHeight * (float)this.GridHeight;
 		this.PuzzleWidth = this.GridNodeWidth * (float)this.GridWidth;
@@ -70,11 +107,11 @@ public class GridPuzzleManager : DSTools.MessengerListener
 	{
 		this.InitMessenger("GridPuzzleManager");
 
-		this.puzzlePositionObjects[PuzzlePosition.Current] = GameObject.Instantiate(this.positonPrefab, Vector3.zero, Quaternion.identity) as GameObject;
-		this.puzzlePositionObjects[PuzzlePosition.Top] = GameObject.Instantiate(this.positonPrefab, new Vector3(0f, this.PuzzleHeight, 0f), Quaternion.identity) as GameObject;
-		this.puzzlePositionObjects[PuzzlePosition.Bottom] = GameObject.Instantiate(this.positonPrefab, new Vector3(0f, -1f*this.PuzzleHeight, 0f), Quaternion.identity) as GameObject;
-		this.puzzlePositionObjects[PuzzlePosition.Right] = GameObject.Instantiate(this.positonPrefab, new Vector3(this.PuzzleWidth, 0f, 0f), Quaternion.identity) as GameObject;
-		this.puzzlePositionObjects[PuzzlePosition.Left] = GameObject.Instantiate(this.positonPrefab, new Vector3(-1f*this.PuzzleWidth, 0f, 0f), Quaternion.identity) as GameObject;
+		this.puzzlePositionObjects[PuzzlePosition.Current] = 	GameObject.Instantiate(this.positonPrefab, Vector3.zero+this.PuzzleBasePosition, Quaternion.identity) as GameObject;
+		this.puzzlePositionObjects[PuzzlePosition.Top] = 		GameObject.Instantiate(this.positonPrefab, new Vector3(0f, this.PuzzleHeight, 0f)+this.PuzzleBasePosition, Quaternion.identity) as GameObject;
+		this.puzzlePositionObjects[PuzzlePosition.Bottom] = 	GameObject.Instantiate(this.positonPrefab, new Vector3(0f, -1f*this.PuzzleHeight, 0f)+this.PuzzleBasePosition, Quaternion.identity) as GameObject;
+		this.puzzlePositionObjects[PuzzlePosition.Right] = 		GameObject.Instantiate(this.positonPrefab, new Vector3(this.PuzzleWidth, 0f, 0f)+this.PuzzleBasePosition, Quaternion.identity) as GameObject;
+		this.puzzlePositionObjects[PuzzlePosition.Left] = 		GameObject.Instantiate(this.positonPrefab, new Vector3(-1f*this.PuzzleWidth, 0f, 0f)+this.PuzzleBasePosition, Quaternion.identity) as GameObject;
 
 		this.LoadRequiredPuzzles();
 
@@ -150,6 +187,13 @@ public class GridPuzzleManager : DSTools.MessengerListener
 			this.GeneratePrefab();
 			this.GeneratePrefabNow = false;
 		}
+
+		if (this.ChangeCameraAngleNow)
+		{
+			this.SetCameraAngle( (this.cameraAngle == GridPuzzleCamera.Angle.Side2D) ? GridPuzzleCamera.Angle.Isometric : GridPuzzleCamera.Angle.Side2D  );
+
+			this.ChangeCameraAngleNow = false;
+		}
 	}
 
 	public void GeneratePrefab()
@@ -167,12 +211,15 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		settings.teleporterPrefabs = this.teleporterPrefabs;
 		settings.sideWallPrefabs = this.sideWallPrefabs;
 
-		settings.GridHeight = this.GridHeight;
-		settings.GridWidth = this.GridWidth;
 		settings.GridNodeHeight = this.GridNodeHeight;
 		settings.GridNodeWidth = this.GridNodeWidth;
 		settings.GridFloorHeight = this.GridFloorHeight;
 		settings.GridFloorDepth = this.GridFloorDepth;
+
+		settings.GridHeight = this.GridHeight;
+		settings.GridDepth = this.GridDepth;
+		settings.GridWidth = this.GridWidth;
+		settings.cubePrefabs = this.cubePrefabs;
 
 		GridPuzzle.GeneratePrefab( settings );
 	}
