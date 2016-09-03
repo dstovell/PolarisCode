@@ -17,9 +17,6 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		Right
 	}
 
-	public bool GeneratePrefabNow = false;
-	public bool ChangeCameraAngleNow = false;
-
 	public float GridNodeWidth;
 	public float GridNodeHeight;
 
@@ -40,22 +37,7 @@ public class GridPuzzleManager : DSTools.MessengerListener
 	public GameObject playerPrefab;
 	public GameObject positonPrefab;
 
-	public GameObject blankNodePrefab;
-	public GameObject metalFloorPrefab;
-	public GameObject plasticFloorPrefab;
-	public GameObject glassFloorPrefab;
-	public GameObject metalCeilingPrefab;
-	public GameObject plasticCeilingPrefab;
-	public GameObject glassCeilingPrefab;
-	public GameObject [] backWallPrefabs;
-
 	public GameObject [] puzzlePrefabs;
-	public GameObject [] nodePrefabs;
-	public GameObject [] nodeGroupPrefabs;
-	public GameObject [] teleporterPrefabs;
-	public GameObject [] sideWallPrefabs;
-
-	public GameObject [] cubePrefabs;
 
 	private GridPuzzleActor player;
 	private GridPuzzlePortal spawnPortal;
@@ -75,20 +57,6 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		for (int i=0; i<this.loadedPuzzles.Count; i++)
 		{
 			this.loadedPuzzles[i].OnCameraAngleChange(angle);
-		}
-
-		if ((this.Side2dCamera != null) && (this.IsometricCamera != null))
-		{
-			if (this.cameraAngle == GridPuzzleCamera.Angle.Side2D)
-			{
-				this.Side2dCamera.SetActive(true);
-				this.IsometricCamera.SetActive(false);
-			}
-			else if (this.cameraAngle == GridPuzzleCamera.Angle.Isometric)
-			{
-				this.Side2dCamera.SetActive(false);
-				this.IsometricCamera.SetActive(true);
-			}
 		}
 	}
 
@@ -121,6 +89,8 @@ public class GridPuzzleManager : DSTools.MessengerListener
 			Transform currentSpawn = current.GetSpawn();
 			this.spawnPortal = currentSpawn.gameObject.GetComponent<GridPuzzlePortal>();
 			this.player = this.LoadActor(this.playerPrefab, currentSpawn);
+
+			this.SendMessengerMsg("PlayerSpawned", this.player);
 		}
 	}
 
@@ -181,47 +151,6 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		{
 			this.LoadRequiredPuzzles();
 		}
-
-		if (this.GeneratePrefabNow)
-		{
-			this.GeneratePrefab();
-			this.GeneratePrefabNow = false;
-		}
-
-		if (this.ChangeCameraAngleNow)
-		{
-			this.SetCameraAngle( (this.cameraAngle == GridPuzzleCamera.Angle.Side2D) ? GridPuzzleCamera.Angle.Isometric : GridPuzzleCamera.Angle.Side2D  );
-
-			this.ChangeCameraAngleNow = false;
-		}
-	}
-
-	public void GeneratePrefab()
-	{
-		GridPuzzle.Settings settings = new GridPuzzle.Settings();
-		settings.blankNodePrefab = this.blankNodePrefab;
-		settings.metalFloorPrefab = this.metalFloorPrefab;
-		settings.plasticFloorPrefab = this.plasticFloorPrefab;
-		settings.glassFloorPrefab = this.glassFloorPrefab;
-		settings.metalCeilingPrefab = this.metalCeilingPrefab;
-		settings.plasticCeilingPrefab = this.plasticCeilingPrefab;
-		settings.glassCeilingPrefab = this.glassCeilingPrefab;
-		settings.backWallPrefabs = this.backWallPrefabs;
-		settings.nodePrefabs = this.nodePrefabs;
-		settings.teleporterPrefabs = this.teleporterPrefabs;
-		settings.sideWallPrefabs = this.sideWallPrefabs;
-
-		settings.GridNodeHeight = this.GridNodeHeight;
-		settings.GridNodeWidth = this.GridNodeWidth;
-		settings.GridFloorHeight = this.GridFloorHeight;
-		settings.GridFloorDepth = this.GridFloorDepth;
-
-		settings.GridHeight = this.GridHeight;
-		settings.GridDepth = this.GridDepth;
-		settings.GridWidth = this.GridWidth;
-		settings.cubePrefabs = this.cubePrefabs;
-
-		GridPuzzle.GeneratePrefab( settings );
 	}
 
 	public GridPuzzle LoadPuzzle(GameObject prefab, PuzzlePosition positionOverride)
@@ -262,16 +191,10 @@ public class GridPuzzleManager : DSTools.MessengerListener
 
 	private void LoadRequiredPuzzles()
 	{
-		/*foreach(PuzzlePosition pos in System.Enum.GetValues(typeof(PuzzlePosition)))
+		if (GridPuzzleEditor.IsActive())
 		{
-			if (pos > PuzzlePosition.None)
-			{
-				if (!this.puzzlePositions.ContainsKey(pos))
-				{
-					this.LoadPuzzle( this.PickRandomPrefab(this.puzzlePrefabs), pos );
-				}
-			}
-		}*/
+			return;
+		}
 
 		if (!this.puzzlePositions.ContainsKey(PuzzlePosition.Current))
 		{
@@ -373,6 +296,31 @@ public class GridPuzzleManager : DSTools.MessengerListener
 				}
 			}
 			break;
+
+		case "GridPuzzleAction":
+			{
+				GridPuzzleAction action = (GridPuzzleAction)obj1;
+				Debug.Log("OnMessage GridPuzzleAction action=" + action.ToString());
+
+				switch(action)
+				{
+				case GridPuzzleAction.Camera_Side2D:
+					this.SetCameraAngle(GridPuzzleCamera.Angle.Side2D);
+					break;
+				case GridPuzzleAction.Camera_Isometric:
+					this.SetCameraAngle(GridPuzzleCamera.Angle.Isometric);
+					break;
+				case GridPuzzleAction.Camera_Front2D:
+					this.SetCameraAngle(GridPuzzleCamera.Angle.Front2D);
+					break;
+				default:
+					break;
+				}
+			}
+			break;
+
+		default:
+				break;
 		}
 	}
 }

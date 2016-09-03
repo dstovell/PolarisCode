@@ -18,7 +18,27 @@ public class GridPuzzleCubeRow : MonoBehaviour
 	
 	}
 
-	static public GridPuzzleCubeRow GeneratePrefab(GridPuzzle.Settings settings, int maxCubeCount, Vector3 basePostion, bool addCubes = true)
+	public int GetCubeCount()
+	{
+		int count = 0;
+		if (this.cubes == null)
+		{
+			return count;
+		}
+
+		for (int j=0; j<this.cubes.Length; j++)
+		{
+			GridPuzzleCube cube = this.cubes[j];
+			if (cube != null)
+			{							
+				count++;
+			}
+		}
+
+		return count;
+	}
+
+	static public GridPuzzleCubeRow GeneratePrefab(GridPuzzle.Settings settings, int maxCubeCount, Vector3 basePostion, int gridX, int gridY, bool addCubes = true)
 	{
 		int safeCubeCount =  Mathf.Max(maxCubeCount, 1);
 		int offset = -1 * Mathf.FloorToInt((float)safeCubeCount/2f);
@@ -36,8 +56,9 @@ public class GridPuzzleCubeRow : MonoBehaviour
 			rowComp.cubes = new GridPuzzleCube[maxCubeCount];
 			for (int j=0; j<maxCubeCount; j++)
 			{
-				Vector3 pos = basePostion + new Vector3(0, 0, j+offset);
-				GridPuzzleCube cube = GridPuzzleCube.GeneratePrefab(settings, pos);
+				int z = j+offset;
+				Vector3 pos = basePostion + new Vector3(0, 0, z);
+				GridPuzzleCube cube = GridPuzzleCube.GeneratePrefab(settings, pos, gridX, gridY, j);
 				cube.gameObject.transform.SetParent(rowObj.transform);
 				rowComp.cubes[j] = cube;
 			}

@@ -36,9 +36,9 @@ public class GridPuzzleActor : DSTools.MessengerListener
 		return (this.moveTarget != Vector3.zero);
 	}
 
-	public void MoveTo(GridPuzzleNode node)
+	public void MoveTo(GridPuzzleCube cube)
 	{
-		this.moveTarget = node.gameObject.transform.position;
+		this.moveTarget = cube.gameObject.transform.position;
 		this.moveTarget.y = 0;
 		Debug.Log("MoveTo pos=" + this.moveTarget.x + "," + this.moveTarget.y + "," + this.moveTarget.z);
 		//this.anim.SetBool("Run", true);

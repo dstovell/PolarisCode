@@ -1,25 +1,48 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 using DSTools;
 
 public class GridPuzzle : MessengerListener 
 {
 	public class Settings
 	{
-		public GameObject blankNodePrefab;
-		public GameObject metalFloorPrefab;
-		public GameObject plasticFloorPrefab;
-		public GameObject glassFloorPrefab;
-		public GameObject metalCeilingPrefab;
-		public GameObject plasticCeilingPrefab;
-		public GameObject glassCeilingPrefab;
-		public GameObject [] backWallPrefabs;
-
-		public GameObject [] nodePrefabs;
 		public GameObject [] teleporterPrefabs;
 		public GameObject [] sideWallPrefabs;
 
 		public GameObject [] cubePrefabs;
+
+		public int GridWidth;
+		public int GridHeight;
+		public int GridDepth;
+
+		public int GridPlateauHeight;
+
+		public float GridCubeSize = 1.0f;
+
+		public float PuzzleHeight 
+		{
+			get
+			{
+				return this.GridCubeSize * (float)this.GridHeight;
+			}
+		}
+
+		public float PuzzleWidth 
+		{
+			get
+			{
+				return this.GridCubeSize * (float)this.GridWidth;
+			}
+		}
+
+		public float PuzzleDepth
+		{
+			get
+			{
+				return this.GridCubeSize * (float)this.GridDepth;
+			}
+		}
 
 		public GameObject PickRandomPrefab(GameObject [] array)
 	    {
@@ -33,32 +56,11 @@ public class GridPuzzle : MessengerListener
 
 			return array[randomIndex];
 	    }
-
-		public float GridNodeWidth;
-		public float GridNodeHeight;
-		public int GridWidth;
-		public int GridHeight;
-		public int GridDepth;
-
-		public float GridFloorHeight;
-		public float GridFloorDepth;
-
-		public float PuzzleHeight 
-		{
-			get
-			{
-		 		return this.GridNodeHeight * (float)this.GridHeight;
-			}
-		}
-
-		public float PuzzleWidth 
-		{
-			get
-			{
-				return this.GridNodeWidth * (float)this.GridWidth;
-			}
-		}
 	}
+
+	GridPuzzleCube [,,] cubeGrid;
+
+	public Settings settings;
 
 	public GameObject spawnPoint;
 	public GridPuzzlePortal exitPoint;
@@ -69,11 +71,102 @@ public class GridPuzzle : MessengerListener
 	public GridPuzzleManager.PuzzlePosition postion = GridPuzzleManager.PuzzlePosition.None;
 	public GridPuzzleManager.PuzzlePosition previousPosition = GridPuzzleManager.PuzzlePosition.None;
 
+	public Vector3 [] navNeighbourDirs;
+
 	private bool markedForDelete = false;
 
-	// Use this for initialization
-	void Start () 
+	void Awake() 
 	{
+	}
+
+	public List<Vector3> GetGeoNeighbourDirs()
+	{
+		List<Vector3> geoNeighbourDirs = new List<Vector3>();
+		geoNeighbourDirs.Add(Vector3.up);
+		geoNeighbourDirs.Add(Vector3.down);
+		geoNeighbourDirs.Add(Vector3.left);
+		geoNeighbourDirs.Add(Vector3.right);
+		geoNeighbourDirs.Add(Vector3.forward);
+		geoNeighbourDirs.Add(Vector3.back);
+
+		return geoNeighbourDirs;
+	}
+
+	public void Optimize()
+	{
+		Debug.Log("Optimize");
+		if(this.cubeGrid == null)
+		{
+			return;
+		}
+
+		for (int x=0; x<this.cubeGrid.GetLength(0); x++)
+		{
+			for (int y=0; y<this.cubeGrid.GetLength(1); y++)
+			{
+				for (int z=0; z<this.cubeGrid.GetLength(2); z++)
+				{
+					GridPuzzleCube cube = this.GetCube(x,y,z);
+					if (cube != null)
+					{
+						List<GridPuzzleCube> neighbours = this.GetNeighbours(cube);
+						for (int i=0; i<neighbours.Count; i++)
+						{
+							bool allRemoved = cube.RemoveSharedSurfaces(neighbours[i]);
+							if (allRemoved)
+							{
+								this.DestroyCube(cube);
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	public bool HasRelativeNeighbour(GridPuzzleCube cube, Vector3 dir, string name)
+	{
+		Vector3 posToCheck = cube.GridPositon + dir;
+		Debug.Log(name  
+					+ " " + cube.GridPositon.x + "," + cube.GridPositon.y + "," + cube.GridPositon.z 
+					+ " + " + dir.x + "," + dir.y + "," + dir.z 
+					+ " => " + posToCheck.x + "," + posToCheck.y + "," + posToCheck.z);
+		return this.IsCubeAt(Mathf.FloorToInt(posToCheck.x), Mathf.FloorToInt(posToCheck.y), Mathf.FloorToInt(posToCheck.z));
+	}
+
+	public GridPuzzleCube GetNeighbour(GridPuzzleCube cube, Vector3 pos)
+	{
+		return this.GetNeighbour(cube, Mathf.RoundToInt(pos.x), Mathf.RoundToInt(pos.y), Mathf.RoundToInt(pos.z));
+	}
+
+	public GridPuzzleCube GetNeighbour(GridPuzzleCube cube, int dx, int dy, int dz)
+	{
+		int x = cube.x + dx;
+		int y = cube.y + dy;
+		int z = cube.z + dz;
+		Debug.Log(name  
+					+ " " + cube.x + "," + cube.y + "," + cube.z 
+					+ " + " + dx + "," + dy + "," + dz 
+					+ " => " + x + "," + y + "," + z);
+		return this.GetCube(x, y, z);
+	}
+
+	public List<GridPuzzleCube> GetNeighbours(GridPuzzleCube cube)
+	{
+		List<Vector3> dirs = this.GetGeoNeighbourDirs();
+
+		List<GridPuzzleCube> list = new List<GridPuzzleCube>();
+		for (int i=0; i<dirs.Count; i++)
+		{
+			Vector3 dir = dirs[i];
+			GridPuzzleCube n = this.GetNeighbour(cube, dir);
+			if (n != null)
+			{
+				list.Add(n);
+			}
+		}
+		return list;
 	}
 	
 	// Update is called once per frame
@@ -145,6 +238,41 @@ public class GridPuzzle : MessengerListener
 		return (this.spawnPoint != null) ? this.spawnPoint.transform : this.gameObject.transform;
 	}
 
+	public bool IsCubeAt(int x, int y, int z)
+	{
+		return (this.GetCube(x, y,  z) != null);
+	}
+
+	public GridPuzzleCube GetCube(int x, int y, int z)
+	{
+		if (	(x >= 0) && (x < this.cubeGrid.GetLength(0)) &&
+				(y >= 0) && (y < this.cubeGrid.GetLength(1)) &&
+				(z >= 0) && (z < this.cubeGrid.GetLength(2))    )
+		{
+			return this.cubeGrid[x,y,z];
+		}
+		else 
+		{
+			return null;
+		}
+	}
+
+	public void DestroyCube(int x, int y, int z)
+	{
+		if (	(x >= 0) && (x < this.cubeGrid.GetLength(0)) &&
+				(y >= 0) && (y < this.cubeGrid.GetLength(1)) &&
+				(z >= 0) && (z < this.cubeGrid.GetLength(2))    )
+		{
+			GameObject.Destroy(this.cubeGrid[x,y,z]);
+			this.cubeGrid[x,y,z] = null;
+		}
+	}
+
+	public void DestroyCube(GridPuzzleCube cube)
+	{
+		DestroyCube(cube.x, cube.y, cube.z);
+	}
+
 	static public GridPuzzlePortal AddRandomPortal(GridPuzzle.Settings settings, Vector3 pos, GameObject parent)
 	{
 		GameObject obj = AddRandomPrefab(settings, settings.teleporterPrefabs, pos, parent);
@@ -162,30 +290,6 @@ public class GridPuzzle : MessengerListener
 		return obj;
 	}
 
-	/*static public GameObject AddSurface(GridPuzzle.Settings settings, SurfacePosition surfacePos, SurfaceMaterial mat, MagneticCharge charge, Vector3 pos, Vector3 size, GameObject parent)
-	{
-		GameObject obj = GameObject.Instantiate(settings.surfacePrefab, pos, Quaternion.identity) as GameObject;
-		SurfaceComponent surface = obj.GetComponent<SurfaceComponent>();
-		BoxCollider collider = obj.GetComponent<BoxCollider>();
-		if (surface == null)
-		{
-			GameObject.Destroy(obj);
-			return null;
-		}
-
-		surface.SurfacePos = surfacePos;
-		surface.SetMaterial(mat);
-		surface.SetCharge(charge);
-
-		obj.transform.localScale = size;
-
-		if (parent != null)
-		{
-			obj.transform.SetParent(parent.transform);
-		}
-		return obj;
-	}*/
-
 	static public GridPuzzle GeneratePrefab(GridPuzzle.Settings settings)
 	{
 		GameObject puzzleObj = new GameObject("GridPuzzle");
@@ -198,22 +302,41 @@ public class GridPuzzle : MessengerListener
 		int widthOffset = -1 * Mathf.FloorToInt((float)settings.GridWidth/2f);
 		int heightOffset = -1 * Mathf.FloorToInt((float)settings.GridHeight/2f);
 
+		puzzle.cubeGrid = new GridPuzzleCube[settings.GridWidth,settings.GridHeight,settings.GridDepth];
+
 		int rowIndex = 0;
 		for (int j=0; j<settings.GridHeight; j++)
 		{
 			for (int i=0; i<settings.GridWidth; i++)
 			{
-				Vector3 pos = new Vector3(i+widthOffset, j+heightOffset, 0f);
+				Vector3 pos = new Vector3(i+widthOffset, j+heightOffset, 0);
 
-				bool addCubes = (j == 0) || (j == (settings.GridHeight-1));
+				bool addCubes = (j < settings.GridPlateauHeight) ? true : false;
+				if (addCubes)
+				{
+					GridPuzzleCubeRow newRow = GridPuzzleCubeRow.GeneratePrefab(settings, rowLength, pos, i, j, addCubes);
+					newRow.gameObject.transform.SetParent(puzzleObj.transform);
 
-				GridPuzzleCubeRow newRow = GridPuzzleCubeRow.GeneratePrefab(settings, rowLength, pos, addCubes);
-				newRow.gameObject.transform.SetParent(puzzleObj.transform);
-				puzzle.rows[rowIndex] = newRow;
-				rowIndex++;
+					if (newRow.cubes != null)
+					{
+						for (int k=0; k<newRow.cubes.Length; k++)
+						{
+							GridPuzzleCube cube = newRow.cubes[k];
+							if (cube != null)
+							{
+								puzzle.cubeGrid[cube.x, cube.y, cube.z] = cube;
+							}
+						}
+					}
+
+
+					puzzle.rows[rowIndex] = newRow;
+					rowIndex++;
+				}
 			}
 		}
-		float portalHeight = 0.5f + (float)heightOffset;
+
+		float portalHeight = 0.5f + (float)heightOffset + (settings.GridPlateauHeight - 1);
 		Vector3 portal1Pos = new Vector3(widthOffset, portalHeight, 0f);
 		GridPuzzlePortal portal1 = AddRandomPortal(settings, portal1Pos, puzzleObj);
 		portal1.gameObject.name = "portalSpawn";
@@ -229,52 +352,52 @@ public class GridPuzzle : MessengerListener
 		return puzzle;
 	}
 
-	static public GridPuzzle GeneratePrefabOld(GridPuzzle.Settings settings)
+
+	public class Stats
 	{
-		GameObject puzzleObj = new GameObject("GridPuzzle");
-		GridPuzzle puzzle = puzzleObj.AddComponent<GridPuzzle>();
-		int groupHeight = 1;
-		int groupWidth = settings.GridWidth;
+		public int cubeCount = 0;
+		public int surfaceCount = 0;
+		public int activeSurfaceCount = 0;
+	}
 
-		Vector3 basePosition = new Vector3(-0.5f*settings.PuzzleWidth, -1f*settings.GridHeight, 1f);
-		GridPuzzlePortal lastPortal2 = null;
-		for (int i=0; i<settings.GridHeight; i++)
+	public GridPuzzle.Stats GetStats()
+	{
+		Stats s  = new Stats();
+		if(this.cubeGrid == null)
 		{
-			Vector3 pos = basePosition + new Vector3(0f, (float)i*settings.GridNodeHeight, 0f);
-			GridPuzzleNodeGroup newGroup = GridPuzzleNodeGroup.GeneratePrefab(settings, groupHeight, groupWidth, pos);
-			newGroup.gameObject.transform.parent = puzzleObj.transform;
-
-			Vector3 portal1Pos = new Vector3(-0.5f*settings.PuzzleWidth, pos.y-1.6f, 1f);
-			GridPuzzlePortal portal1 = AddRandomPortal(settings, portal1Pos, newGroup.gameObject);
-			Vector3 portal2Pos = new Vector3(0.5f*settings.PuzzleWidth-settings.GridNodeWidth, pos.y-1.6f, 1f);
-			GridPuzzlePortal portal2 = AddRandomPortal(settings, portal2Pos, newGroup.gameObject);
-
-			if (lastPortal2 == null)
-			{
-				puzzle.spawnPoint = portal1.gameObject;
-				portal1.gameObject.name = "portalSpawn";
-			}
-			else
-			{
-				lastPortal2.target = portal2;
-				portal1.target = puzzle.spawnPoint.GetComponent<GridPuzzlePortal>();
-				puzzle.exitPoint = portal1;
-				portal1.gameObject.name = "portalExit";
-			}
-
-			portal1.transform.rotation = Quaternion.LookRotation(Vector3.right, portal1.transform.up);
-			portal2.transform.rotation = Quaternion.LookRotation(Vector3.left, portal1.transform.up);
-
-			lastPortal2 = portal2;
+			return s;
 		}
 
-		Vector3 wall1Pos = new Vector3(-0.5f*settings.PuzzleWidth-1.7f, -0.5f*settings.PuzzleHeight, 0f);
-		AddRandomPrefab(settings, settings.sideWallPrefabs, wall1Pos, puzzleObj);
-		Vector3 wall2Pos = new Vector3(0.5f*settings.PuzzleWidth+0.2f, -0.5f*settings.PuzzleHeight, 0f);
-		AddRandomPrefab(settings, settings.sideWallPrefabs, wall2Pos, puzzleObj);
+		for (int x=0; x<this.cubeGrid.GetLength(0); x++)
+		{
+			for (int y=0; y<this.cubeGrid.GetLength(1); y++)
+			{
+				for (int z=0; z<this.cubeGrid.GetLength(2); z++)
+				{
+					GridPuzzleCube cube = this.GetCube(x,y,z);
+					if (cube != null)
+					{
+						s.cubeCount++;
+						GameObject [] surfaces = cube.surfaces;
+						if (surfaces != null)
+						{
+							for (int i=0; i<surfaces.Length; i++)
+							{
+								if (surfaces[i] != null)
+								{
+									s.surfaceCount++;
+									if (surfaces[i].active)
+									{
+										s.activeSurfaceCount++;						
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 
-		//AddSurface(settings, SurfacePosition.Floor, SurfaceMaterial.Metal, MagneticCharge.None, Vector3.zero, new Vector3(settings.GridNodeWidth, settings.GridFloorHeight, settings.GridFloorDepth), puzzleObj);
-
-		return puzzle;
+		return s;
 	}
 }

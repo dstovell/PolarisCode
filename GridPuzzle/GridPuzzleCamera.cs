@@ -36,6 +36,9 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 
 	public Camera cam;
 
+	public GridPuzzlePlayerController player;
+	private float playerStartX;
+
 	public GameObject Side2DCursor;
 	public GameObject IsometricCursor;
 
@@ -54,8 +57,8 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		this.settings[Angle.Side2D].verticalLensShift = 0f;
 
 		this.settings[Angle.Isometric] = new GridPuzzleCameraSettings();
-		this.settings[Angle.Isometric].orthographicSize = 2.84f;
-		this.settings[Angle.Isometric].cameraPosition = new Vector3(-4.84f, 1.23f, -4.96f);
+		this.settings[Angle.Isometric].orthographicSize = 3.35f;
+		this.settings[Angle.Isometric].cameraPosition = new Vector3(-4.84f, 2.32f, -4.96f);
 		this.settings[Angle.Isometric].cameraRotation = Quaternion.Euler(new Vector3(0f, 45f, 0f));
 		this.settings[Angle.Isometric].nearPlane = 0.1f;
 		this.settings[Angle.Isometric].farPlane = 500f;
@@ -85,10 +88,21 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 			this.currentAngle = this.desiredAngle;
 		}
 	}
+
+	void AssignPlayer(GridPuzzlePlayerController _player)
+	{
+		this.player = _player;
+		this.playerStartX = this.player.transform.position.x;
+	}
 	
 	// Update is called once per frame
 	void Update()
 	{
+		if (this.player != null)
+		{
+			float playerDeltaX = this.player.transform.position.x - this.playerStartX;
+		}
+
 		if (this.desiredAngle != this.currentAngle) 
 		{
 			if (!this.isUpdating)
@@ -103,6 +117,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 			float t = this.updateTime/this.TransitionTimeSeconds;
 
 			UpdateCameraAngle(this.currentAngle, this.desiredAngle, t);
+			UpdateCameraPosition(this.currentAngle, this.desiredAngle, t);
 
 			if (t < 1.0f)
 			{
@@ -125,6 +140,10 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 				}
 			}
 		}
+		else 
+		{
+			UpdateCameraPosition(this.currentAngle);
+		}
 	}
 
 	public void UpdateCameraAngle(GridPuzzleCamera.Angle fromAngle, GridPuzzleCamera.Angle toAngle, float t)
@@ -140,13 +159,41 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		{
 			this.cam.orthographicSize = Mathf.Lerp(_from.orthographicSize, _to.orthographicSize, t);
 
-			this.cam.transform.position = Vector3.Lerp(_from.cameraPosition, _to.cameraPosition, t);
 			this.cam.transform.rotation = Quaternion.Lerp(_from.cameraRotation, _to.cameraRotation, t);
 
 			this.editor.lensShift = Vector3.Lerp(new Vector2(0f, _from.verticalLensShift), new Vector2(0f, _to.verticalLensShift), t);
 
 			//this.cam.nearClipPlane = Mathf.Lerp(_from.nearPlane, _to.nearPlane, t);
 			//this.cam.farClipPlane = Mathf.Lerp(_from.farPlane, _to.farPlane, t);
+		}
+	}
+
+	public void UpdateCameraPosition(GridPuzzleCamera.Angle fromAngle, GridPuzzleCamera.Angle toAngle = GridPuzzleCamera.Angle.None, float t = 0f)
+	{
+		GridPuzzleCameraSettings _from = this.settings.ContainsKey(fromAngle) ? this.settings[fromAngle] : null;
+		GridPuzzleCameraSettings _to = this.settings.ContainsKey(toAngle) ? this.settings[toAngle] : null;
+		if (_from == null)
+		{
+			return;
+		}
+
+		if (this.cam != null)
+		{
+			float deltaX = (this.player != null) ? (this.player.transform.position.x - this.playerStartX) : 0f;
+			Vector3 fromFinal = _from.cameraPosition;
+			fromFinal.x += deltaX;
+
+			if (_to != null)
+			{	
+				Vector3 toFinal = _to.cameraPosition;
+				toFinal.x += deltaX;
+
+				this.cam.transform.position = Vector3.Lerp(fromFinal, toFinal, t);
+			}
+			else if (this.cam.transform.position != fromFinal)
+			{
+				this.cam.transform.position = Vector3.MoveTowards(this.cam.transform.position, fromFinal, 1.0f*Time.deltaTime);
+			}
 		}
 	}
 
@@ -173,15 +220,10 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		}
 	}
 
-	void OnGUI()
+	public GridPuzzleCamera.Angle ToggleCamera()
 	{
-		if (!this.isUpdating)
-		{
-			if (GUI.Button(new Rect(15, 15, 60, 60), (this.desiredAngle == Angle.Side2D) ? "2D" : "ISO"))
-	        {
-				this.desiredAngle = (this.desiredAngle == Angle.Side2D) ? Angle.Isometric : Angle.Side2D;
-	        }
-		}
+		this.desiredAngle = (this.desiredAngle == Angle.Side2D) ? Angle.Isometric : Angle.Side2D;
+		return this.desiredAngle;
 	}
 }
 
