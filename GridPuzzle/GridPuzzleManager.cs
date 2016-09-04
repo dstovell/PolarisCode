@@ -296,26 +296,10 @@ public class GridPuzzleManager : DSTools.MessengerListener
 				}
 			}
 			break;
-
-		case "GridPuzzleAction":
+		case "CameraPositionUpdate":
 			{
-				GridPuzzleAction action = (GridPuzzleAction)obj1;
-				Debug.Log("OnMessage GridPuzzleAction action=" + action.ToString());
-
-				switch(action)
-				{
-				case GridPuzzleAction.Camera_Side2D:
-					this.SetCameraAngle(GridPuzzleCamera.Angle.Side2D);
-					break;
-				case GridPuzzleAction.Camera_Isometric:
-					this.SetCameraAngle(GridPuzzleCamera.Angle.Isometric);
-					break;
-				case GridPuzzleAction.Camera_Front2D:
-					this.SetCameraAngle(GridPuzzleCamera.Angle.Front2D);
-					break;
-				default:
-					break;
-				}
+				GridPuzzleCamera.Angle newAngle = (GridPuzzleCamera.Angle)obj1;
+				this.SetCameraAngle(newAngle);
 			}
 			break;
 

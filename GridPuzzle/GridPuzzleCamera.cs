@@ -39,9 +39,6 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 	public GridPuzzlePlayerController player;
 	private float playerStartX;
 
-	public GameObject Side2DCursor;
-	public GameObject IsometricCursor;
-
 	private Dictionary<GridPuzzleCamera.Angle,GridPuzzleCameraSettings> settings;
 
 	void Awake()
@@ -89,6 +86,11 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		}
 	}
 
+	public Ray ScreenPointToRay(Vector2 screenPoint)
+	{
+		return editor.ScreenPointToRay(new Vector3(screenPoint.x, screenPoint.y));
+	}
+
 	void AssignPlayer(GridPuzzlePlayerController _player)
 	{
 		this.player = _player;
@@ -109,9 +111,6 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 			{
 				this.isUpdating = true;
 				this.updateTime = 0;
-
-				this.Side2DCursor.SetActive(false);
-				this.IsometricCursor.SetActive(false);
 			}
 
 			float t = this.updateTime/this.TransitionTimeSeconds;
@@ -129,15 +128,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 				this.isUpdating = false;
 				this.currentAngle = this.desiredAngle;
 
-				if (this.currentAngle == Angle.Front2D)
-				{
-					//this.Side2DCursor.SetActive(true);
-				}
-				else if (this.currentAngle == Angle.Isometric)
-				{
-					
-					//this.IsometricCursor.SetActive(true);
-				}
+				this.SendMessengerMsg("CameraPositionUpdate", this.currentAngle);
 			}
 		}
 		else 

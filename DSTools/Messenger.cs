@@ -16,6 +16,11 @@ public class MessengerListener : MonoBehaviour
 		Messenger.AddListener(this);
 	}
 
+	protected void RemoveMessenger()
+	{	
+		Messenger.RemoveListener(this);
+	}
+
 	public void SendMessengerMsg(string name, object obj1 = null, object obj2 = null)
 	{
 		Messenger.SendMessageFrom(this.messengerName, name, obj1, obj2);
@@ -33,7 +38,18 @@ public static class Messenger
 
 	public static void AddListener(MessengerListener newListener)
 	{
-		listeners.Add(newListener);
+		if (!listeners.Contains(newListener))
+		{
+			listeners.Add(newListener);
+		}
+	}
+
+	public static void RemoveListener(MessengerListener removeListener)
+	{
+		if (listeners.Contains(removeListener))
+		{
+			listeners.Remove(removeListener);
+		}
 	}
 
 	public static void SendMessageFrom(string from, string id, object obj1 = null, object obj2 = null)

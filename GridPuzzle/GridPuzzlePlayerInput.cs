@@ -8,41 +8,44 @@ using TouchScript.Gestures;
 public class GridPuzzlePlayerInput : DSTools.MessengerListener
 {
 	public GridPuzzlePlayerController player;
-	public GameObject touchManager;
+
+	private GridPuzzleCamera cam;
 
 	// Use this for initialization
 	void Start ()
 	{
 		this.InitMessenger("GridPuzzlePlayerInput");
+		if (this.cam == null)
+		{
+			this.cam = Camera.main.gameObject.GetComponent<GridPuzzleCamera>();
+		}
+
+		if (this.player == null)
+		{
+			this.player = this.gameObject.GetComponent<GridPuzzlePlayerController>();
+		}
 	}
 	
 	// Update is called once per frame
 	void Update() 
 	{
-        int fingerCount = 0;
-        foreach (Touch touch in Input.touches) 
-        {
-            if (touch.phase != TouchPhase.Ended && touch.phase != TouchPhase.Canceled) {
-                fingerCount++;
-			}
-           
-        }
-        if (fingerCount > 0)
-        {
-			Debug.Log("User has " + fingerCount + " finger(s) touching the screen");
-		}
 	}
 
 	private void OnEnable()
     {
-		FlickGesture [] flicks = this.touchManager.GetComponents<FlickGesture>();
+		if (this.cam == null)
+		{
+			this.cam = Camera.main.gameObject.GetComponent<GridPuzzleCamera>();
+		}
+
+		FlickGesture [] flicks = this.cam.gameObject.GetComponents<FlickGesture>();
 		for (int i=0; i<flicks.Length; i++)
 		{
 			Debug.LogError("PlayerInput flick=" + flicks[i].name);
 			flicks[i].Flicked += this.FlickedHandler;
 		}
 
-		TapGesture [] taps = this.touchManager.GetComponents<TapGesture>();
+		TapGesture [] taps = this.cam.gameObject.GetComponents<TapGesture>();
 		for (int i=0; i<taps.Length; i++)
 		{
 			Debug.LogError("PlayerInput tap=" + taps[i].name);
@@ -52,13 +55,18 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 
     private void OnDisable()
     {
-		FlickGesture [] flicks = this.touchManager.GetComponents<FlickGesture>();
+		if (this.cam == null)
+		{
+			return;
+		}
+
+		FlickGesture [] flicks = this.cam.gameObject.GetComponents<FlickGesture>();
 		for (int i=0; i<flicks.Length; i++)
 		{
 			flicks[i].Flicked -= this.FlickedHandler;
 		}
 
-		TapGesture [] taps = this.touchManager.GetComponents<TapGesture>();
+		TapGesture [] taps = this.cam.gameObject.GetComponents<TapGesture>();
 		for (int i=0; i<taps.Length; i++)
 		{
 			taps[i].Tapped -= this.TapHandler;
@@ -101,19 +109,22 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 
 	private void TapHandler(object sender, EventArgs e)
 	{
-		Debug.LogError("TapHandler");
 		TapGesture gesture = sender as TapGesture;
 		if (gesture != null)
 		{
-			Vector2 tapPoint = gesture.NormalizedScreenPosition;
+			Vector2 tapPoint = gesture.ScreenPosition;
 
 			RaycastHit hitPoint = new RaycastHit();
-	        Ray ray = new Ray(transform.position, transform.forward);
+			Ray ray = this.cam.ScreenPointToRay(tapPoint);
+			float rayDistance = 100f;
+			string [] maskStrings = new string[2]{"Cube","CubeRow"};
+			LayerMask mask = LayerMask.GetMask(maskStrings);
 
 	        // Optimize this later with length and mask
-	        if (Physics.Raycast(ray, out hitPoint))
+			if (Physics.Raycast(ray, out hitPoint, rayDistance, mask))
 	        {
-	        	GameObject obj = hitPoint.transform.gameObject;
+	        	GameObject obj = hitPoint.collider.gameObject;
+				Debug.LogError("Hit " + obj.name);
 				GridPuzzleCube cube = obj.GetComponent<GridPuzzleCube>();
 				GridPuzzleCubeRow cubeRow = obj.GetComponent<GridPuzzleCubeRow>();
 
@@ -124,7 +135,8 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 				}
 				else if (cubeRow != null)
 				{
-					Debug.Log("Hit cube " + cubeRow.name);
+					Debug.Log("Hit row " + cubeRow.name);
+					player.MoveTo(cubeRow);
 				}
 			}
 		}
@@ -132,15 +144,32 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 
 	public override void OnMessage(string id, object obj1, object obj2)
 	{
+		GridPuzzleCube cube = null;
+
 		switch(id)
 		{
-		case "CubeSelected":
-			GridPuzzleCube cube = obj1 as GridPuzzleCube;
-			if (this.player != null)
+		case "GridPuzzleGameplayAction":
+			GridPuzzleGameplayAction action = (GridPuzzleGameplayAction)obj1;
+			GameObject obj = obj2 as GameObject;
+			Debug.Log("GridPuzzlePlayerInput.OnMessage id=" + id + " action=" + action.ToString() + " name=" + obj.name);
+			if (action == GridPuzzleGameplayAction.MoveToCube)
 			{
-				player.MoveTo(cube);
+				cube = obj.GetComponent<GridPuzzleCube>();
+				if (this.player != null)
+				{
+					player.MoveTo(cube);
+				}
+			}
+			else if (action == GridPuzzleGameplayAction.MoveToCubeRow)
+			{
+				GridPuzzleCubeRow cubeRow = obj.GetComponent<GridPuzzleCubeRow>();
+				if (this.player != null)
+				{
+					player.MoveTo(cubeRow);
+				}
 			}
 			break;
+
 		case "PlayerSpawned":
 			this.player = obj1 as GridPuzzlePlayerController;
 			break;

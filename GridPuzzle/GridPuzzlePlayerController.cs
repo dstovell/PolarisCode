@@ -168,6 +168,7 @@ public class GridPuzzlePlayerController : MessengerListener
 		Vector3 upDirection = Vector3.up; //(this.currentSurface == Surface.Ceiling) ? Vector3.down : Vector3.up;
 		this.desiredRotation = Quaternion.LookRotation(desiredLookDirection, upDirection);
 
+
 		//TODO: Make turnaround more graceful??
 		this.rb.rotation = this.desiredRotation; //Quaternion.RotateTowards(this.transform.rotation, this.desiredRotation, this.RotateSpeed*Time.deltaTime);
 
@@ -230,6 +231,20 @@ public class GridPuzzlePlayerController : MessengerListener
 	public bool IsPlaying(string animName)
 	{
 		return this.anim.GetCurrentAnimatorStateInfo(0).IsName(animName);
+	}
+
+	public void MoveTo(GridPuzzleCubeRow row)
+	{
+		Vector3 pos = this.gameObject.transform.position;
+		Vector3 dest = row.NavPosition;
+		//dest.y = pos.y;
+
+		List<Vector3> points = new List<Vector3>();
+		points.Add(pos);
+		points.Add(dest);
+
+		this.movePath = new GridPuzzlePlayerPath(points);
+		this.SetState(State.Run);
 	}
 
 	public void MoveTo(GridPuzzleCube cube)

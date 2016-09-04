@@ -24,9 +24,14 @@ public class GridPuzzleEditor : DSTools.MessengerListener
 		GridPuzzleEditor.Instance = this;
 	}
 
+	void Start() 
+	{
+		this.InitMessenger("GridPuzzleEditor");
+	}
+
 	public bool GeneratePrefabNow = false;
 
-	public void GeneratePrefab()
+	public GridPuzzle.Settings GetSettings()
 	{
 		GridPuzzle.Settings settings = new GridPuzzle.Settings();
 		settings.cubePrefabs = this.cubePrefabs;
@@ -38,8 +43,12 @@ public class GridPuzzleEditor : DSTools.MessengerListener
 		settings.GridWidth = this.GridWidth;
 
 		settings.GridPlateauHeight = this.GridPlateauHeight;
+		return settings;
+	}
 
-		this.currentPuzzle = GridPuzzle.GeneratePrefab( settings );
+	public void GeneratePrefab()
+	{
+		this.currentPuzzle = GridPuzzle.GeneratePrefab( GetSettings() );
 		this.currentPuzzle.gameObject.name = "GridPuzzle" + this.index;
 		this.index++;
 	}
@@ -49,6 +58,14 @@ public class GridPuzzleEditor : DSTools.MessengerListener
 		if (this.currentPuzzle != null)
 		{
 			this.currentPuzzle.Optimize();
+		}
+	}
+
+	public void SetCameraAngle(GridPuzzleCamera.Angle angle)
+	{
+		if ((this.currentPuzzle != null) && (this.currentPuzzle.currentAngle != angle))
+		{
+			this.currentPuzzle.OnCameraAngleChange(angle);
 		}
 	}
 
@@ -69,5 +86,20 @@ public class GridPuzzleEditor : DSTools.MessengerListener
 	void OnGUI()
 	{
 		
+	}
+
+	public override void OnMessage(string id, object obj1, object obj2)
+	{
+		switch(id)
+		{
+		case "CameraPositionUpdate":
+			{
+				GridPuzzleCamera.Angle newAngle = (GridPuzzleCamera.Angle)obj1;
+				this.SetCameraAngle(newAngle);
+			}
+			break;
+		default:
+				break;
+		}
 	}
 }

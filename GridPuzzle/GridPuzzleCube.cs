@@ -9,6 +9,13 @@ public enum CubeMaterial
 	Metal,
 	Plastic,
 	Glass,
+	Ice,
+	Water,
+	Organic,
+	Dirt,
+	Stone,
+	Effect,
+	Hazzard
 }
 
 public class GridPuzzleCube : MessengerListener 
@@ -23,9 +30,17 @@ public class GridPuzzleCube : MessengerListener
 	public MagneticCharge charge = MagneticCharge.None;
 	public CubeMaterial cubeMaterial = CubeMaterial.None;
 
+	public GridPuzzleCamera.Angle angle = GridPuzzleCamera.Angle.Side2D;
+
+	private GridPuzzleVectorUIItem button = null;
+
 	private MagneticCharge lastCharge = MagneticCharge.None;
 
+	private GridPuzzle parentPuzzle;
+
 	public Material mat;
+
+	public bool isTopCube = false;
 
 	public Vector3 NavPosition
 	{
@@ -49,6 +64,8 @@ public class GridPuzzleCube : MessengerListener
 	void Awake()
 	{
 		this.box = this.gameObject.GetComponent<BoxCollider>();
+		this.gameObject.layer = LayerMask.NameToLayer("Cube");
+		this.isTopCube = false;
 
 		if (this.mat != null)
 		{
@@ -60,9 +77,20 @@ public class GridPuzzleCube : MessengerListener
 				}
 			}
 		}
+	}
 
-		this.box.enabled = true;
-		this.box.isTrigger = true;
+	void Start()
+	{
+		if (GridPuzzleEditor.IsActive())
+		{
+			this.InitMessenger("GridPuzzleCubeRow");
+		}
+		this.OnCameraAngleChange(this.angle);
+		this.UpdateChargeFX();
+
+		//might need to go up two??
+		this.parentPuzzle = this.gameObject.GetComponentInParent<GridPuzzle>();
+		this.isTopCube = this.parentPuzzle.IsTopCube(this);
 	}
 
 	public void SetCharge(MagneticCharge _charge)
@@ -96,17 +124,54 @@ public class GridPuzzleCube : MessengerListener
 			this.lastCharge = this.charge;
 		}
 	}
-
-	// Use this for initialization
-	void Start () 
-	{
-		UpdateChargeFX();
-	}
 	
 	// Update is called once per frame
 	void Update () 
 	{
 		UpdateChargeFX();
+
+		if (this.isTopCube && GridPuzzleEditor.IsActive() && (this.angle == GridPuzzleCamera.Angle.Isometric))
+		{
+			if (this.button == null)
+			{
+				this.button = this.gameObject.AddComponent<GridPuzzleVectorUIItem>();
+				this.button.editorAction = GridPuzzleEditorAction.RemoveCube;
+				this.button.text = "-";
+				this.button.size = 0.1f;
+			}
+
+			this.button.position = Camera.main.WorldToViewportPoint(this.NavPosition);
+		}
+		else if (this.isTopCube && (this.angle == GridPuzzleCamera.Angle.Isometric))
+		{
+			if (this.button == null)
+			{
+				this.button = this.gameObject.AddComponent<GridPuzzleVectorUIItem>();
+				this.button.gameplayAction = GridPuzzleGameplayAction.MoveToCube;
+				this.button.text = "*";
+				this.button.size = 0.05f;
+			}
+
+			this.button.position = Camera.main.WorldToViewportPoint(this.NavPosition);
+		}
+		else if (this.button != null)
+		{
+			this.button.CloseAndDestroy();
+			GameObject.DestroyObject(this.button);
+			this.button = null;
+		}
+	}
+
+	public void Destroy()
+	{
+		if (this.button != null)
+		{
+			this.button.CloseAndDestroy();
+			GameObject.DestroyObject(this.button);
+			this.button = null;
+		}
+		RemoveMessenger();
+		GameObject.Destroy(this.gameObject);
 	}
 
 	public Vector3 EvaluateMagneticGravity(GridPuzzlePlayerController controller, bool defaultToGravity=true)
@@ -152,9 +217,9 @@ public class GridPuzzleCube : MessengerListener
 		return (thisBox != null) ? thisBox.size : Vector3.one;
 	}
 
-	static public GridPuzzleCube GeneratePrefab(GridPuzzle.Settings settings, Vector3 position, int gridX, int gridY, int gridZ)
+	static public GridPuzzleCube GeneratePrefab(GameObject prefab, Vector3 position, int gridX, int gridY, int gridZ)
 	{
-		GameObject cubeObj = GameObject.Instantiate(settings.PickRandomPrefab(settings.cubePrefabs), position, Quaternion.identity) as GameObject;
+		GameObject cubeObj = GameObject.Instantiate(prefab, position, Quaternion.identity) as GameObject;
 		GridPuzzleCube cube = cubeObj.GetComponent<GridPuzzleCube>();
 		if (cube == null)
 		{
@@ -173,11 +238,10 @@ public class GridPuzzleCube : MessengerListener
 		return cube;
 	}
 
-	void OnMouseDown() 
+	static public GridPuzzleCube GeneratePrefab(GridPuzzle.Settings settings, Vector3 position, int gridX, int gridY, int gridZ)
 	{
-		Debug.Log("GridPuzzleCube.OnMouseDown CubeSelected");
-		this.SendMessengerMsg("CubeSelected", this);
-    }
+		return GeneratePrefab(settings.PickRandomPrefab(settings.cubePrefabs), position, gridX, gridY, gridZ);
+	}
 
 	void OnTriggerEnter(Collider other)
     {
@@ -187,6 +251,11 @@ public class GridPuzzleCube : MessengerListener
 
 	public void OnCameraAngleChange(GridPuzzleCamera.Angle angle)
 	{
+		this.angle = angle;
+		this.box.enabled = true;
+		this.box.isTrigger = false;
+		return;
+
 		if ((angle == GridPuzzleCamera.Angle.Side2D) || (angle == GridPuzzleCamera.Angle.Front2D))
 		{
 			//this.box.enabled = false;
@@ -196,6 +265,27 @@ public class GridPuzzleCube : MessengerListener
 		{
 			this.box.enabled = true;
 			this.box.isTrigger = false;
+		}
+	}
+
+	public override void OnMessage(string id, object obj1, object obj2)
+	{
+		if (id == "GridPuzzleEditorAction")
+		{
+			GridPuzzleEditorAction action = (GridPuzzleEditorAction)obj1;
+
+			switch(action)
+			{
+			case GridPuzzleEditorAction.RemoveCube:
+				GameObject obj = obj2 as GameObject;
+				if (obj == this.gameObject)
+				{
+					this.Destroy();
+				}
+				break;
+			default:
+				break;
+			}
 		}
 	}
 }

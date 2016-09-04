@@ -2,39 +2,58 @@
 using System.Collections;
 using System.Collections.Generic;
 
+public enum GridPuzzleEditorAction
+{
+	None,
+	GeneratePrefab,
+	OptimizePrefab,
+
+	SwitchCamera,
+
+	AddCubes,
+	RemoveCube,
+}
+
+public enum GridPuzzleGameplayAction
+{
+	None,
+	MoveToCube,
+	MoveToCubeRow,
+}
+
 public class GridPuzzleVectorUIItem : EasyVectorButton
 {
-	public enum GridPuzzleEditorAction
-	{
-		None,
-		GeneratePrefab,
-		OptimizePrefab,
-
-		SwitchCamera,
-	}
-
-	public GridPuzzleEditorAction action;
+	public GridPuzzleEditorAction editorAction;
+	public GridPuzzleGameplayAction gameplayAction;
 	public GridPuzzleCamera camera;
 
 	protected override void OnButtonPressed() 
 	{
-		switch(this.action)
+		if (this.editorAction != GridPuzzleEditorAction.None)
 		{
-			case GridPuzzleEditorAction.GeneratePrefab:
-				GridPuzzleEditor.Instance.GeneratePrefab();
-				break;
+			DSTools.Messenger.SendMessageFrom("GridPuzzleVectorUIItem", "GridPuzzleEditorAction", this.editorAction, this.gameObject);
 
-			case GridPuzzleEditorAction.OptimizePrefab:
-				GridPuzzleEditor.Instance.OptimizePuzzle();
-				break;
+			switch(this.editorAction)
+			{
+				case GridPuzzleEditorAction.GeneratePrefab:
+					GridPuzzleEditor.Instance.GeneratePrefab();
+					break;
 
-			case GridPuzzleEditorAction.SwitchCamera:
-				GridPuzzleCamera.Angle angle = camera.ToggleCamera();
-				GridPuzzleManager.Instance.SetCameraAngle(angle);
-				break;
+				case GridPuzzleEditorAction.OptimizePrefab:
+					GridPuzzleEditor.Instance.OptimizePuzzle();
+					break;
 
-			default:
-				break;
+				case GridPuzzleEditorAction.SwitchCamera:
+					camera.ToggleCamera();
+					break;
+
+				default:
+					break;
+			}
+		}
+		else if (this.gameplayAction != GridPuzzleGameplayAction.None)
+		{
+			DSTools.Messenger.SendMessageFrom("GridPuzzleVectorUIItem", "GridPuzzleGameplayAction", this.gameplayAction, this.gameObject);
 		}
 	}
 }
