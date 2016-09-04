@@ -7,6 +7,7 @@ public enum GridPuzzleEditorAction
 	None,
 	GeneratePrefab,
 	OptimizePrefab,
+	FixPrefab,
 
 	SwitchCamera,
 
@@ -41,6 +42,10 @@ public class GridPuzzleVectorUIItem : EasyVectorButton
 
 				case GridPuzzleEditorAction.OptimizePrefab:
 					GridPuzzleEditor.Instance.OptimizePuzzle();
+					break;
+
+				case GridPuzzleEditorAction.FixPrefab:
+					GridPuzzleEditor.Instance.FixPuzzle();
 					break;
 
 				case GridPuzzleEditorAction.SwitchCamera:

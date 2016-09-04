@@ -61,6 +61,14 @@ public class GridPuzzleEditor : DSTools.MessengerListener
 		}
 	}
 
+	public void FixPuzzle()
+	{
+		if (this.currentPuzzle != null)
+		{
+			this.currentPuzzle.Fix();
+		}
+	}
+
 	public void SetCameraAngle(GridPuzzleCamera.Angle angle)
 	{
 		if ((this.currentPuzzle != null) && (this.currentPuzzle.currentAngle != angle))

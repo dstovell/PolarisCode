@@ -28,7 +28,7 @@ public class CharacterDemo : MonoBehaviour
 		this.accumulatedTime += Time.deltaTime;
 		if (this.accumulatedTime > this.DemoTime)
 		{
-			SceneManager.LoadScene("GridPuzzleLoader");
+			SceneManager.LoadScene("Winter");
 		}
 	}
 }

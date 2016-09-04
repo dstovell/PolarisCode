@@ -85,12 +85,14 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 				if (gesture.ScreenFlickVector.x > 0)
 				{
 					//Right
-					Debug.LogError("Right");
+					//Debug.LogError("Right");
+					DSTools.Messenger.SendMessageFrom("GridPuzzleUIAction", "GridPuzzleAction", GridPuzzleAction.Camera_Isometric);
 				}
 				else
 				{
 					//Left
-					Debug.LogError("Left");
+					//Debug.LogError("Left");
+					DSTools.Messenger.SendMessageFrom("GridPuzzleUIAction", "GridPuzzleAction", GridPuzzleAction.Camera_Side2D);
 				}
 			}
 			else
