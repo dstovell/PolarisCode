@@ -67,7 +67,7 @@ public class GridPuzzleActor : DSTools.MessengerListener
 	public void RequestMoveTo(GridPuzzleCubeRow row)
 	{
 		GridPuzzleCube cube = row.GetFrontCube();
-		this.MoveTo(cube);
+		this.RequestMoveTo(cube);
 	}
 
 	public void Stop()
