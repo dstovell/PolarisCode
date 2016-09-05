@@ -99,6 +99,7 @@ public class GridPuzzleManager : DSTools.MessengerListener
 			Transform currentSpawn = current.GetSpawn();
 			this.spawnPortal = currentSpawn.gameObject.GetComponent<GridPuzzlePortal>();
 			this.player = this.LoadActor(this.playerPrefab, currentSpawn);
+			this.player.TeleportTo(currentSpawn.gameObject);
 
 			this.SendMessengerMsg("PlayerSpawned", this.player);
 		}

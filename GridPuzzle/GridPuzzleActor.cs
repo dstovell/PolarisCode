@@ -61,6 +61,14 @@ public class GridPuzzleActor : DSTools.MessengerListener
 		}
 	}
 
+	public void TeleportTo(GameObject obj)
+	{
+		if (this.player != null)
+		{
+			this.player.TeleportTo(obj);
+		}
+	}
+
 	public int GetGraphMask(GridPuzzleCamera.Angle angle)
 	{
 		int graphMask = -1;

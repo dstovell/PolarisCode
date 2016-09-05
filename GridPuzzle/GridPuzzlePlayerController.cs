@@ -115,6 +115,8 @@ public class GridPuzzlePlayerController : MessengerListener
 
 	public Quaternion desiredRotation;
 
+	private GameObject lastTeleport;
+
 	// Use this for initialization
 	void Start() 
 	{
@@ -192,7 +194,11 @@ public class GridPuzzlePlayerController : MessengerListener
 			}
 		}
 
-
+		//We have fallen!!!
+		if (this.transform.position.y < -10)
+		{
+			this.Respawn();
+		}
 	}
 
 	public void UpdateGravity()
@@ -283,9 +289,15 @@ public class GridPuzzlePlayerController : MessengerListener
 
 	public void TeleportTo(GameObject location)
 	{
+		this.lastTeleport = location;
 		this.transform.position = location.transform.position;
 		this.transform.rotation = location.transform.rotation;
 		this.Stop();
+	}
+
+	public void Respawn()
+	{
+		this.TeleportTo(this.lastTeleport);
 	}
 
 	public void Stop()
