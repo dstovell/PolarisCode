@@ -1,10 +1,13 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using Pathfinding;
 
 public class GridPuzzleManager : DSTools.MessengerListener 
 {
 	static public GridPuzzleManager Instance;
+
+	public AstarPath path;
 
 	public enum PuzzlePosition
 	{
@@ -68,6 +71,11 @@ public class GridPuzzleManager : DSTools.MessengerListener
 
 		this.PuzzleHeight = this.GridNodeHeight * (float)this.GridHeight;
 		this.PuzzleWidth = this.GridNodeWidth * (float)this.GridWidth;
+
+		if (this.path == null)
+		{
+			this.path = this.gameObject.GetComponentInChildren<AstarPath>();
+		}
 	}
 
 	// Use this for initialization
@@ -166,6 +174,8 @@ public class GridPuzzleManager : DSTools.MessengerListener
 			return null;
 		}
 
+		puzzle.Fix();
+
 		this.loadedPuzzles.Add(puzzle);
 
 		this.MakePosition(puzzle, positionOverride);
@@ -199,13 +209,25 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		if (!this.puzzlePositions.ContainsKey(PuzzlePosition.Current))
 		{
 			this.LoadPuzzle( this.PickRandomPrefab(this.puzzlePrefabs), PuzzlePosition.Current );
+			this.SetupPathfinding( this.GetPuzzle(PuzzlePosition.Current) );
 		}
 
 		if (!this.puzzlePositions.ContainsKey(PuzzlePosition.Top))
 		{
 			this.LoadPuzzle( this.PickRandomPrefab(this.puzzlePrefabs), PuzzlePosition.Top );
+			//this.SetupPathfinding( this.GetPuzzle(PuzzlePosition.Top) );
 			this.ConnectPuzzle(this.GetPuzzle(PuzzlePosition.Current), this.GetPuzzle(PuzzlePosition.Top));
 		}
+	}
+
+	private void SetupPathfinding(GridPuzzle puzzle)
+	{
+		if ((puzzle == null) || (this.path == null))
+		{
+			return;
+		}
+
+		puzzle.SetupNavPoints();
 	}
 
 	private void MakePosition(GridPuzzle puzzle, PuzzlePosition pos)

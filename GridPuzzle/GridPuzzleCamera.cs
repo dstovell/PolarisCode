@@ -190,19 +190,19 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 
 	public override void OnMessage(string id, object obj1, object obj2)
 	{
-		if (id == "GridPuzzleAction")
+		if (id == "GridPuzzleUIAction")
 		{
-			GridPuzzleAction action = (GridPuzzleAction)obj1;
+			GridPuzzleUIAction.Type action = (GridPuzzleUIAction.Type)obj1;
 
 			switch(action)
 			{
-			case GridPuzzleAction.Camera_Side2D:
+			case GridPuzzleUIAction.Type.Camera_Side2D:
 				this.desiredAngle = Angle.Side2D;
 				break;
-			case GridPuzzleAction.Camera_Isometric:
+			case GridPuzzleUIAction.Type.Camera_Isometric:
 				this.desiredAngle = Angle.Isometric;
 				break;
-			case GridPuzzleAction.Camera_Front2D:
+			case GridPuzzleUIAction.Type.Camera_Front2D:
 				this.desiredAngle = Angle.Front2D;
 				break;
 			default:

@@ -8,6 +8,7 @@ using TouchScript.Gestures;
 public class GridPuzzlePlayerInput : DSTools.MessengerListener
 {
 	public GridPuzzlePlayerController player;
+	public GridPuzzleActor actor;
 
 	private GridPuzzleCamera cam;
 
@@ -23,6 +24,11 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 		if (this.player == null)
 		{
 			this.player = this.gameObject.GetComponent<GridPuzzlePlayerController>();
+		}
+
+		if (this.actor == null)
+		{
+			this.actor = this.gameObject.GetComponent<GridPuzzleActor>();
 		}
 	}
 	
@@ -86,13 +92,13 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 				{
 					//Right
 					//Debug.LogError("Right");
-					DSTools.Messenger.SendMessageFrom("GridPuzzleUIAction", "GridPuzzleAction", GridPuzzleAction.Camera_Isometric);
+					DSTools.Messenger.SendMessageFrom("GridPuzzleUIAction", "GridPuzzleUIAction", GridPuzzleUIAction.Type.Camera_Isometric);
 				}
 				else
 				{
 					//Left
 					//Debug.LogError("Left");
-					DSTools.Messenger.SendMessageFrom("GridPuzzleUIAction", "GridPuzzleAction", GridPuzzleAction.Camera_Side2D);
+					DSTools.Messenger.SendMessageFrom("GridPuzzleUIAction", "GridPuzzleUIAction", GridPuzzleUIAction.Type.Camera_Side2D);
 				}
 			}
 			else
@@ -126,19 +132,18 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 			if (Physics.Raycast(ray, out hitPoint, rayDistance, mask))
 	        {
 	        	GameObject obj = hitPoint.collider.gameObject;
-				Debug.LogError("Hit " + obj.name);
 				GridPuzzleCube cube = obj.GetComponent<GridPuzzleCube>();
 				GridPuzzleCubeRow cubeRow = obj.GetComponent<GridPuzzleCubeRow>();
 
 				if (cube != null)
 				{
 					Debug.Log("Hit cube " + cube.name);
-					player.MoveTo(cube);
+					this.actor.RequestMoveTo(cube);
 				}
 				else if (cubeRow != null)
 				{
 					Debug.Log("Hit row " + cubeRow.name);
-					player.MoveTo(cubeRow);
+					this.actor.RequestMoveTo(cubeRow);
 				}
 			}
 		}

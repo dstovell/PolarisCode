@@ -40,13 +40,21 @@ public class GridPuzzleCube : MessengerListener
 
 	public Material mat;
 
-	public bool isTopCube = false;
-
 	public Vector3 NavPosition
 	{
 		get
 		{
 			return this.gameObject.transform.position + 0.5f*Vector3.up;
+		}
+	}
+
+	public GameObject NavPoint;
+
+	public bool IsTop
+	{
+		get
+		{
+			return (this.parentPuzzle != null) ? this.parentPuzzle.IsTopCube(this) : false;
 		}
 	}
 
@@ -65,7 +73,7 @@ public class GridPuzzleCube : MessengerListener
 	{
 		this.box = this.gameObject.GetComponent<BoxCollider>();
 		this.gameObject.layer = LayerMask.NameToLayer("Cube");
-		this.isTopCube = false;
+		this.parentPuzzle = this.gameObject.GetComponentInParent<GridPuzzle>();
 
 		if (this.mat != null)
 		{
@@ -87,10 +95,17 @@ public class GridPuzzleCube : MessengerListener
 		}
 		this.OnCameraAngleChange(this.angle);
 		this.UpdateChargeFX();
+	}
 
-		//might need to go up two??
-		this.parentPuzzle = this.gameObject.GetComponentInParent<GridPuzzle>();
-		this.isTopCube = this.parentPuzzle.IsTopCube(this);
+	public void CreateNavPoint()
+	{
+		if (this.NavPoint == null)
+		{
+			this.NavPoint = new GameObject("NavPoint");
+			this.NavPoint.transform.position = this.NavPosition;
+			this.NavPoint.transform.SetParent(this.transform);
+			this.NavPoint.tag = "NavPoint";
+		}
 	}
 
 	public void SetCharge(MagneticCharge _charge)
@@ -124,13 +139,27 @@ public class GridPuzzleCube : MessengerListener
 			this.lastCharge = this.charge;
 		}
 	}
+
+	public void UpdateCollider()
+	{		
+		if (this.box != null)
+		{
+			bool enabledForAngle = (angle == GridPuzzleCamera.Angle.Isometric);
+			bool enabled = this.IsTop && enabledForAngle;
+			if (this.box.enabled != enabled)
+			{
+				this.box.enabled = enabled;
+			}
+		}
+	}
 	
 	// Update is called once per frame
 	void Update () 
 	{
 		UpdateChargeFX();
+		UpdateCollider();
 
-		if (this.isTopCube && GridPuzzleEditor.IsActive() && (this.angle == GridPuzzleCamera.Angle.Isometric))
+		/*if (GridPuzzleEditor.IsActive() && (this.angle == GridPuzzleCamera.Angle.Isometric))
 		{
 			if (this.button == null)
 			{
@@ -142,7 +171,7 @@ public class GridPuzzleCube : MessengerListener
 
 			this.button.position = Camera.main.WorldToViewportPoint(this.NavPosition);
 		}
-		else if (this.isTopCube && (this.angle == GridPuzzleCamera.Angle.Isometric))
+		else if ((this.angle == GridPuzzleCamera.Angle.Isometric))
 		{
 			if (this.button == null)
 			{
@@ -159,7 +188,7 @@ public class GridPuzzleCube : MessengerListener
 			this.button.CloseAndDestroy();
 			GameObject.DestroyObject(this.button);
 			this.button = null;
-		}
+		}*/
 	}
 
 	public void Destroy()
@@ -252,20 +281,6 @@ public class GridPuzzleCube : MessengerListener
 	public void OnCameraAngleChange(GridPuzzleCamera.Angle angle)
 	{
 		this.angle = angle;
-		this.box.enabled = true;
-		this.box.isTrigger = false;
-		return;
-
-		if ((angle == GridPuzzleCamera.Angle.Side2D) || (angle == GridPuzzleCamera.Angle.Front2D))
-		{
-			//this.box.enabled = false;
-			//this.box.isTrigger = true;
-		}
-		else if (angle == GridPuzzleCamera.Angle.Isometric)
-		{
-			this.box.enabled = true;
-			this.box.isTrigger = false;
-		}
 	}
 
 	public override void OnMessage(string id, object obj1, object obj2)

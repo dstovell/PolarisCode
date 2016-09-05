@@ -15,8 +15,6 @@ public class GridPuzzleCubeRow : DSTools.MessengerListener
 	public int x;
 	public int y;
 
-	public bool isTopRow = false;
-
 	private int lastEditorIndex = 0;
 
 	private GridPuzzle parentPuzzle;
@@ -29,9 +27,16 @@ public class GridPuzzleCubeRow : DSTools.MessengerListener
 		}
 	}
 
+	public bool IsTop
+	{
+		get
+		{
+			return (this.parentPuzzle != null) ? this.parentPuzzle.IsTopRow(this) : false;
+		}
+	}
+
 	void Awake()
 	{
-		this.isTopRow = false;
 		this.gameObject.layer = LayerMask.NameToLayer("CubeRow");
 	}
 
@@ -44,12 +49,25 @@ public class GridPuzzleCubeRow : DSTools.MessengerListener
 		this.OnCameraAngleChange(this.angle);
 
 		this.parentPuzzle = this.gameObject.GetComponentInParent<GridPuzzle>();
-		this.isTopRow = this.parentPuzzle.IsTopRow(this);
 	}
-	
-	// Update is called once per frame
+
+	public void UpdateCollider()
+	{		
+		if (this.box != null)
+		{
+			bool enabledForAngle = (this.angle != GridPuzzleCamera.Angle.Isometric);
+			bool enabled = this.IsTop && enabledForAngle;
+			if (this.box.enabled != enabled)
+			{
+				this.box.enabled = enabled;
+			}
+		}
+	}
+
 	void Update ()
 	{
+		UpdateCollider();
+
 		/*if (GridPuzzleEditor.IsActive() && (this.angle == GridPuzzleCamera.Angle.Side2D))
 		{
 			if (this.button == null)
@@ -92,6 +110,29 @@ public class GridPuzzleCubeRow : DSTools.MessengerListener
 		}
 		RemoveMessenger();
 		GameObject.Destroy(this.gameObject);
+	}
+
+	public GridPuzzleCube GetFrontCube()
+	{
+		if (this.cubes == null)
+		{
+			return null;
+		}
+
+		GridPuzzleCube frontCube = null;
+		for (int j=0; j<this.cubes.Length; j++)
+		{
+			GridPuzzleCube cube = this.cubes[j];
+			if (cube != null)
+			{
+				if ((frontCube == null) || (cube.z  > frontCube.z))
+				{
+					frontCube = cube;
+				}
+			}
+		}
+
+		return frontCube;
 	}
 
 	public int GetCubeCount()

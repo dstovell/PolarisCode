@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using DSTools;
+using Pathfinding;
 
 public class GridPuzzle : MessengerListener 
 {
@@ -60,11 +61,16 @@ public class GridPuzzle : MessengerListener
 
 	GridPuzzleCube [,,] cubeGrid;
 
-	public Settings settings;
+	public int GridWidth;
+	public int GridHeight;
+	public int GridDepth;
+	public float GridCubeSize = 1.0f;
 
 	public GameObject spawnPoint;
 	public GridPuzzlePortal exitPoint;
 	public GridPuzzleCubeRow [] rows;
+
+	private PointGraph navGraph;
 
 	public GridPuzzleCamera.Angle currentAngle = GridPuzzleCamera.Angle.None;
 
@@ -81,7 +87,7 @@ public class GridPuzzle : MessengerListener
 
 	void Start()
 	{
-		Fix();
+		//Fix();
 	}
 
 	public List<Vector3> GetGeoNeighbourDirs()
@@ -95,6 +101,43 @@ public class GridPuzzle : MessengerListener
 		geoNeighbourDirs.Add(Vector3.back);
 
 		return geoNeighbourDirs;
+	}
+
+	public PointGraph GetGraph(AstarData data)
+	{
+		if (this.navGraph != null)
+		{
+			return this.navGraph;
+		}
+		this.navGraph = data.FindGraphOfType(typeof(PointGraph)) as PointGraph;
+		//this.navGraph.root = this.transform;
+
+		return this.navGraph;
+	}
+
+	public void SetupNavPoints()
+	{
+		Debug.Log("SetupNavPoints");
+		if(this.cubeGrid == null)
+		{
+			return;
+		}
+
+		Debug.Log("SetupNavPoints started");
+		for (int x=0; x<this.cubeGrid.GetLength(0); x++)
+		{
+			for (int y=0; y<this.cubeGrid.GetLength(1); y++)
+			{
+				for (int z=0; z<this.cubeGrid.GetLength(2); z++)
+				{
+					GridPuzzleCube cube = this.GetCube(x,y,z);
+					if ((cube != null) && this.IsTopCube(cube))
+					{
+						cube.CreateNavPoint();
+					}
+				}
+			}
+		} 
 	}
 
 	public void Optimize()
@@ -260,25 +303,32 @@ public class GridPuzzle : MessengerListener
 
 	public bool IsTopRow(GridPuzzleCubeRow row)
 	{
-		if (row != null)
+		if ((row == null) || (row.GetCubeCount() == 0))
 		{
-			return !this.IsRowAt(row.x, row.y);
+			return false;
 		}
-		return false;
+
+		GridPuzzleCubeRow rowAbove = this.GetRow(row.x, row.y+1);
+		if (rowAbove == null)
+		{
+			return true;
+		}
+
+		return (rowAbove.GetCubeCount() < row.cubes.Length);
 	}
 
 	public bool IsTopCube(GridPuzzleCube cube)
 	{
 		if (cube != null)
 		{
-			return this.IsTopCube(cube.x, cube.y, cube.z);
+			return !this.IsCubeAt(cube.x, cube.y+1, cube.z);
 		}
 		return false;
 	}
 
 	public bool IsTopCube(int x, int y, int z)
 	{
-		GridPuzzleCube cube = this.GetCube(x, y,  z);
+		GridPuzzleCube cube = this.GetCube(x, y, z);
 		if (cube != null)
 		{
 			return !this.IsCubeAt(x, y+1, z);
@@ -330,18 +380,16 @@ public class GridPuzzle : MessengerListener
 
 	public void DestroyCube(int x, int y, int z)
 	{
-		if (	(x >= 0) && (x < this.cubeGrid.GetLength(0)) &&
-				(y >= 0) && (y < this.cubeGrid.GetLength(1)) &&
-				(z >= 0) && (z < this.cubeGrid.GetLength(2))    )
-		{
-			GameObject.Destroy(this.cubeGrid[x,y,z]);
-			this.cubeGrid[x,y,z] = null;
-		}
+		this.DestroyCube( this.GetCube(x, y, z) );
 	}
 
 	public void DestroyCube(GridPuzzleCube cube)
 	{
-		DestroyCube(cube.x, cube.y, cube.z);
+		if (cube != null)
+		{
+			this.cubeGrid[cube.x,cube.y,cube.z] = null;
+			GameObject.Destroy(cube);
+		}
 	}
 
 	static public GridPuzzlePortal AddRandomPortal(GridPuzzle.Settings settings, Vector3 pos, GameObject parent)
@@ -366,19 +414,21 @@ public class GridPuzzle : MessengerListener
 		GameObject puzzleObj = new GameObject("GridPuzzle");
 		puzzleObj.transform.position = Vector3.zero;
 		GridPuzzle puzzle = puzzleObj.AddComponent<GridPuzzle>();
-		int rowLength = settings.GridDepth;
+		puzzle.GridWidth = settings.GridWidth;
+		puzzle.GridHeight = settings.GridHeight;
+		puzzle.GridDepth = settings.GridDepth;
 
-		puzzle.rows = new GridPuzzleCubeRow[settings.GridWidth*settings.GridHeight];
+		int rowLength = puzzle.GridDepth;
+
+		puzzle.rows = new GridPuzzleCubeRow[puzzle.GridWidth*puzzle.GridHeight];
 
 		int widthOffset = -1 * Mathf.FloorToInt((float)settings.GridWidth/2f);
 		int heightOffset = -1 * Mathf.FloorToInt((float)settings.GridHeight/2f);
 
-		puzzle.cubeGrid = new GridPuzzleCube[settings.GridWidth,settings.GridHeight,settings.GridDepth];
-
 		int rowIndex = 0;
-		for (int j=0; j<settings.GridHeight; j++)
+		for (int j=0; j<puzzle.GridHeight; j++)
 		{
-			for (int i=0; i<settings.GridWidth; i++)
+			for (int i=0; i<puzzle.GridWidth; i++)
 			{
 				Vector3 pos = new Vector3(i+widthOffset, j+heightOffset, 0);
 
@@ -417,8 +467,14 @@ public class GridPuzzle : MessengerListener
 	{
 		if (this.cubeGrid == null)
 		{
-			Debug.LogWarning(this.gameObject.name + " has a null cubeGrid");
-			return;
+			if ((this.GridWidth == 0) || (this.GridHeight == 0) || (this.GridDepth == 0))
+			{
+				Debug.LogError("Attemping to add cubes to a puzzle with no cubeGrid or stored settings");
+				return;
+			}
+
+			Debug.LogWarning("Attemping to add cubes to a puzzle with no cubeGrid, building from strored settings");
+			this.cubeGrid = new GridPuzzleCube[this.GridWidth, this.GridHeight, this.GridDepth];
 		}
 
 		if (newRow.cubes != null)
