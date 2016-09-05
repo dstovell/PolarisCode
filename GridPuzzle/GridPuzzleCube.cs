@@ -101,10 +101,10 @@ public class GridPuzzleCube : MessengerListener
 	{
 		if (this.NavPoint == null)
 		{
-			this.NavPoint = new GameObject("NavPoint");
+			this.NavPoint = new GameObject("NavPoint_Iso");
 			this.NavPoint.transform.position = this.NavPosition;
 			this.NavPoint.transform.SetParent(this.transform);
-			this.NavPoint.tag = "NavPoint";
+			this.NavPoint.tag = "NavPoint_Iso";
 		}
 	}
 

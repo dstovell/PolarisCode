@@ -19,11 +19,20 @@ public class GridPuzzleCubeRow : DSTools.MessengerListener
 
 	private GridPuzzle parentPuzzle;
 
+	public GameObject NavPoint;
 	public Vector3 NavPosition
 	{
 		get
 		{
 			return this.gameObject.transform.position + 0.5f*Vector3.up;
+		}
+	}
+
+	public bool IsColliderRow
+	{
+		get
+		{
+			return (this.parentPuzzle != null) ? this.parentPuzzle.IsColliderRow(this) : false;
 		}
 	}
 
@@ -56,7 +65,7 @@ public class GridPuzzleCubeRow : DSTools.MessengerListener
 		if (this.box != null)
 		{
 			bool enabledForAngle = (this.angle != GridPuzzleCamera.Angle.Isometric);
-			bool enabled = this.IsTop && enabledForAngle;
+			bool enabled = this.IsColliderRow && enabledForAngle;
 			if (this.box.enabled != enabled)
 			{
 				this.box.enabled = enabled;
@@ -110,6 +119,20 @@ public class GridPuzzleCubeRow : DSTools.MessengerListener
 		}
 		RemoveMessenger();
 		GameObject.Destroy(this.gameObject);
+	}
+
+	public void CreateNavPoint()
+	{
+		if (this.NavPoint == null)
+		{
+			GridPuzzleCube frontCube = this.GetFrontCube();
+			Vector3 nav = (frontCube != null) ? frontCube.NavPosition : this.NavPosition;
+			
+			this.NavPoint = new GameObject("NavPoint_Side2D");
+			this.NavPoint.transform.position = this.NavPosition;
+			this.NavPoint.transform.SetParent(this.transform);
+			this.NavPoint.tag = "NavPoint_Side2D";
+		}
 	}
 
 	public GridPuzzleCube GetFrontCube()

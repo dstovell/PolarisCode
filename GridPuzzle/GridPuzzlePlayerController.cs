@@ -48,7 +48,7 @@ public class GridPuzzlePlayerPath
 	{
 		if ((this.nodes.Count == 0) || this.isDone)
 		{
-			return Vector3.zero;
+			return Vector3.forward;
 		}
 
 		Vector3 dest = this.nodes[this.currentTargetNode].destination;
@@ -165,8 +165,14 @@ public class GridPuzzlePlayerController : MessengerListener
 		}
 
 		Vector3 desiredLookDirection = (this.movePath != null) ? this.movePath.GetDirection() : this.transform.forward;
+		desiredLookDirection.y = 0;
+		desiredLookDirection = desiredLookDirection.normalized;
+		//Debug.LogError(desiredLookDirection.x + "," + desiredLookDirection.y + "," + desiredLookDirection.z);
 		Vector3 upDirection = Vector3.up; //(this.currentSurface == Surface.Ceiling) ? Vector3.down : Vector3.up;
-		this.desiredRotation = Quaternion.LookRotation(desiredLookDirection, upDirection);
+		if (desiredLookDirection != Vector3.zero)
+		{
+			this.desiredRotation = Quaternion.LookRotation(desiredLookDirection, upDirection);
+		}
 
 
 		//TODO: Make turnaround more graceful??
@@ -235,6 +241,7 @@ public class GridPuzzlePlayerController : MessengerListener
 
 	public void MoveTo(GridPuzzleCubeRow row)
 	{
+		GridPuzzleCube frontCube = row.GetFrontCube();
 		Vector3 pos = this.gameObject.transform.position;
 		Vector3 dest = row.NavPosition;
 		//dest.y = pos.y;
@@ -249,6 +256,7 @@ public class GridPuzzlePlayerController : MessengerListener
 
 	public void MoveTo(GridPuzzleCube cube)
 	{
+		//Debug.LogError("MoveTo pos=" + cube.NavPosition.x + "," + cube.NavPosition.y + "," + cube.NavPosition.z);
 		Vector3 pos = this.gameObject.transform.position;
 		Vector3 dest = cube.NavPosition;
 		dest.y = pos.y;

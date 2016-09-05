@@ -42,6 +42,8 @@ public class GridPuzzleManager : DSTools.MessengerListener
 
 	public GameObject [] puzzlePrefabs;
 
+	public GameObject pathFollowerPrefab;
+
 	private GridPuzzleActor player;
 	private GridPuzzlePortal spawnPortal;
 	private List<GridPuzzleActor> loadedActors = new List<GridPuzzleActor>();
@@ -120,6 +122,11 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		return actor;
 	}
 
+	public GridPuzzle GetCurrentPuzzle()
+	{
+		return this.GetPuzzle(PuzzlePosition.Current);
+	}
+
 	private GridPuzzle GetPuzzle(PuzzlePosition pos)
 	{
 		return this.puzzlePositions.ContainsKey(pos) ? this.puzzlePositions[pos] : null;
@@ -183,6 +190,30 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		return puzzle;
 	}
 
+	public void SpawnPathFollower(List<Vector3> path, float speed = 1f, float verticalAdjustment=0f)
+	{
+		Debug.LogError("SpawnPathFollower prefab=" + (this.pathFollowerPrefab != null) + " path.Count=" + path.Count);
+		if ((this.pathFollowerPrefab != null) && (path != null) && (path.Count > 0))
+		{
+			List<Vector3> adjustedPath = new List<Vector3>(path);
+			for (int i=0; i<adjustedPath.Count; i++)
+			{
+				Vector3 pos = adjustedPath[i];
+				adjustedPath[i].Set( pos.x, pos.y+verticalAdjustment, pos.z);
+			}
+
+			GameObject obj = GameObject.Instantiate(this.pathFollowerPrefab, adjustedPath[0], Quaternion.identity) as GameObject;
+			GridPuzzlePathFollower follower = obj.GetComponent<GridPuzzlePathFollower>();
+			if (follower == null)
+			{
+				GameObject.Destroy(obj);
+				return;
+			}
+
+			follower.FollowPath(adjustedPath, speed);
+		}
+	}
+
 	public void ConnectPuzzle(GridPuzzle source, GridPuzzle destination)
 	{
 		source.exitPoint.target = destination.spawnPoint.GetComponent<GridPuzzlePortal>();
@@ -227,7 +258,8 @@ public class GridPuzzleManager : DSTools.MessengerListener
 			return;
 		}
 
-		puzzle.SetupNavPoints();
+		puzzle.SetupNavPoints(this.path.astarData.pointGraph);
+		this.path.Scan();
 	}
 
 	private void MakePosition(GridPuzzle puzzle, PuzzlePosition pos)

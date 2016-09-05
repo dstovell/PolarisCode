@@ -103,20 +103,103 @@ public class GridPuzzle : MessengerListener
 		return geoNeighbourDirs;
 	}
 
-	public PointGraph GetGraph(AstarData data)
+	public GridPuzzleCube GetCubeByNavPoint(Vector3 navPoint)
 	{
-		if (this.navGraph != null)
+		for (int x=0; x<this.cubeGrid.GetLength(0); x++)
 		{
-			return this.navGraph;
+			for (int y=0; y<this.cubeGrid.GetLength(1); y++)
+			{
+				for (int z=0; z<this.cubeGrid.GetLength(2); z++)
+				{
+					GridPuzzleCube cube = this.GetCube(x,y,z);
+					if (cube != null)
+					{
+						float dist = Vector3.Distance(navPoint, cube.NavPosition);
+						if (dist < 0.1f)
+						{
+							return cube;
+						}
+					}
+				}
+			}
 		}
-		this.navGraph = data.FindGraphOfType(typeof(PointGraph)) as PointGraph;
-		//this.navGraph.root = this.transform;
 
-		return this.navGraph;
+		return null;
 	}
 
-	public void SetupNavPoints()
+	public List<GridPuzzleCubeRow> GetCubeRowsByNavPoints(List<Vector3> navPoints)
 	{
+		Dictionary<Vector3, GridPuzzleCubeRow> rowMap = new Dictionary<Vector3, GridPuzzleCubeRow>();
+		for (int x=0; x<this.rows.Length; x++)
+		{
+			GridPuzzleCubeRow row = this.rows[x];
+			if (row == null)
+			{
+				continue;
+			}
+
+			for (int i=0; i<navPoints.Count; i++)
+			{
+				float dist = Vector3.Distance(navPoints[i], row.NavPosition);
+				if (dist < 0.1f)
+				{
+					rowMap[ navPoints[i] ] = row;
+				}
+			}
+		}
+
+		List<GridPuzzleCubeRow> rows = new List<GridPuzzleCubeRow>();
+		for (int i=0; i<navPoints.Count; i++)
+		{
+			if (rowMap.ContainsKey(navPoints[i]))
+			{
+				rows.Add( rowMap[ navPoints[i] ] );
+			}
+		}
+
+		return rows;
+	}
+
+	public List<GridPuzzleCube> GetCubesByNavPoints(List<Vector3> navPoints)
+	{
+		Dictionary<Vector3, GridPuzzleCube> cubeMap = new Dictionary<Vector3, GridPuzzleCube>();
+		for (int x=0; x<this.cubeGrid.GetLength(0); x++)
+		{
+			for (int y=0; y<this.cubeGrid.GetLength(1); y++)
+			{
+				for (int z=0; z<this.cubeGrid.GetLength(2); z++)
+				{
+					GridPuzzleCube cube = this.GetCube(x,y,z);
+					if (cube != null)
+					{
+						for (int i=0; i<navPoints.Count; i++)
+						{
+							float dist = Vector3.Distance(navPoints[i], cube.NavPosition);
+							if (dist < 0.1f)
+							{
+								cubeMap[ navPoints[i] ] = cube;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		List<GridPuzzleCube> cubes = new List<GridPuzzleCube>();
+		for (int i=0; i<navPoints.Count; i++)
+		{
+			if (cubeMap.ContainsKey(navPoints[i]))
+			{
+				cubes.Add( cubeMap[ navPoints[i] ] );
+			}
+		}
+
+		return cubes;
+	}
+
+	public void SetupNavPoints(PointGraph graph)
+	{
+		this.navGraph = graph;
 		Debug.Log("SetupNavPoints");
 		if(this.cubeGrid == null)
 		{
@@ -137,7 +220,16 @@ public class GridPuzzle : MessengerListener
 					}
 				}
 			}
-		} 
+		}
+
+		for (int i=0; i<this.rows.Length; i++)
+		{
+			GridPuzzleCubeRow row = this.rows[i];
+			if ((row != null) && this.IsTopRow(row))
+			{
+				row.CreateNavPoint();
+			}
+		}
 	}
 
 	public void Optimize()
@@ -182,7 +274,12 @@ public class GridPuzzle : MessengerListener
 				GridPuzzleCubeRow row = this.rows[i];
 				if (row != null)
 				{
-					this.AddCubesFromRow(row);
+					int numAdded = this.AddCubesFromRow(row);
+					if (numAdded == 0)
+					{
+						GameObject.Destroy(row);
+						this.rows[i] = null;
+					}
 				}
 			}
 		}
@@ -301,7 +398,7 @@ public class GridPuzzle : MessengerListener
 		return (this.spawnPoint != null) ? this.spawnPoint.transform : this.gameObject.transform;
 	}
 
-	public bool IsTopRow(GridPuzzleCubeRow row)
+	public bool IsColliderRow(GridPuzzleCubeRow row)
 	{
 		if ((row == null) || (row.GetCubeCount() == 0))
 		{
@@ -315,6 +412,22 @@ public class GridPuzzle : MessengerListener
 		}
 
 		return (rowAbove.GetCubeCount() < row.cubes.Length);
+	}
+
+	public bool IsTopRow(GridPuzzleCubeRow row)
+	{
+		if ((row == null) || (row.GetCubeCount() == 0))
+		{
+			return false;
+		}
+
+		GridPuzzleCubeRow rowAbove = this.GetRow(row.x, row.y+1);
+		if (rowAbove == null)
+		{
+			return true;
+		}
+
+		return false;
 	}
 
 	public bool IsTopCube(GridPuzzleCube cube)
@@ -463,14 +576,15 @@ public class GridPuzzle : MessengerListener
 	}
 
 
-	public void AddCubesFromRow(GridPuzzleCubeRow newRow)
+	public int AddCubesFromRow(GridPuzzleCubeRow newRow)
 	{
+		int numAdded = 0;
 		if (this.cubeGrid == null)
 		{
 			if ((this.GridWidth == 0) || (this.GridHeight == 0) || (this.GridDepth == 0))
 			{
 				Debug.LogError("Attemping to add cubes to a puzzle with no cubeGrid or stored settings");
-				return;
+				return numAdded;
 			}
 
 			Debug.LogWarning("Attemping to add cubes to a puzzle with no cubeGrid, building from strored settings");
@@ -479,15 +593,18 @@ public class GridPuzzle : MessengerListener
 
 		if (newRow.cubes != null)
 		{
+			
 			for (int k=0; k<newRow.cubes.Length; k++)
 			{
 				GridPuzzleCube cube = newRow.cubes[k];
 				if (cube != null)
 				{
 					this.cubeGrid[cube.x, cube.y, cube.z] = cube;
+					numAdded++;
 				}
 			}
 		}
+		return numAdded;
 	}
 
 	public class Stats
