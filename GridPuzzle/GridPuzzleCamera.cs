@@ -29,8 +29,10 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 	public Angle desiredAngle = Angle.Side2D;
 	private Angle currentAngle = Angle.None;
 
-	private bool isUpdating;
+	private bool isUpdating = false;
 	private float updateTime = 0f;
+	private bool isUpdatingManually = false;
+	private float manualAngleT = 0f;
 
 	public CameraPerspectiveEditor editor; 
 
@@ -113,28 +115,91 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 				this.updateTime = 0;
 			}
 
-			float t = this.updateTime/this.TransitionTimeSeconds;
+			float t = this.IsManualCamera() ? Mathf.Abs(this.manualAngleT) : this.updateTime/this.TransitionTimeSeconds;
 
 			UpdateCameraAngle(this.currentAngle, this.desiredAngle, t);
 			UpdateCameraPosition(this.currentAngle, this.desiredAngle, t);
 
-			if (t < 1.0f)
-			{
-				this.updateTime += Time.deltaTime;
-				this.updateTime = Mathf.Min(this.updateTime, this.TransitionTimeSeconds);
-			}
-			else 
+			if (t >= 1.0f)
 			{
 				this.isUpdating = false;
+				this.isUpdatingManually = false;
 				this.currentAngle = this.desiredAngle;
 
 				this.SendMessengerMsg("CameraPositionUpdate", this.currentAngle);
 			}
+			else if (t <= 0.0f)
+			{
+				this.isUpdating = false;
+				this.isUpdatingManually = false;
+				this.desiredAngle = this.currentAngle;
+
+				this.SendMessengerMsg("CameraPositionUpdate", this.currentAngle);
+			}
+			else 
+			{
+				if (!this.IsManualCamera())
+				{
+					bool isMovingBack = (Mathf.Abs(this.manualAngleT) < 0.5f);
+
+					this.updateTime += isMovingBack ? (-1f*Time.deltaTime) : Time.deltaTime;
+					this.updateTime = Mathf.Min(this.updateTime, this.TransitionTimeSeconds);
+					this.updateTime = Mathf.Max(this.updateTime, 0f);
+				}
+			}
+
 		}
 		else 
 		{
 			UpdateCameraPosition(this.currentAngle);
 		}
+	}
+
+	public void OnManualInput(float deltaT)
+	{
+		if (this.desiredAngle != this.currentAngle)
+		{
+			this.manualAngleT += 5f*deltaT;
+
+			if (this.manualAngleT > 0.98f) 
+			{
+				this.manualAngleT = 1f;
+			}
+			else if (this.manualAngleT < -0.98f) 
+			{
+				this.manualAngleT = -1f;
+			}
+			else if (Mathf.Abs(this.manualAngleT) < 0.02)
+			{
+				this.manualAngleT = 0f;
+			}
+		}
+		else if ((this.currentAngle == Angle.Side2D) && (deltaT > 0.0f))
+		{
+			//Debug.LogError("Moving To Isometric");
+			this.desiredAngle = Angle.Isometric;
+			this.manualAngleT = 0.05f;
+			this.isUpdatingManually = true;
+		}
+		else if ((this.currentAngle == Angle.Isometric) && (deltaT < 0.0f))
+		{
+			//Debug.LogError("Moving To Side2D");
+			this.desiredAngle = Angle.Side2D;
+			this.manualAngleT = -0.05f;
+			this.isUpdatingManually = true;
+		}
+	}
+
+	public void OnEndManualInput()
+	{
+		this.isUpdatingManually = false;
+		float absAngleT = Mathf.Abs(this.manualAngleT);
+		this.updateTime = absAngleT*this.TransitionTimeSeconds;
+	}
+
+	public bool IsManualCamera()
+	{
+		return this.isUpdatingManually;
 	}
 
 	public void UpdateCameraAngle(GridPuzzleCamera.Angle fromAngle, GridPuzzleCamera.Angle toAngle, float t)

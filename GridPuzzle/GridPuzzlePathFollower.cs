@@ -15,6 +15,8 @@ public class GridPuzzlePathFollower : MonoBehaviour
 
 	public GameObject gameObject;
 
+	public GameObject EnableOnComplete;
+
 	private bool isDone = false;
 	private float timeOnTarget = 0f;
 
@@ -45,6 +47,10 @@ public class GridPuzzlePathFollower : MonoBehaviour
 	{
 		if (this.isDone)
 		{
+			if (this.EnableOnComplete != null)
+			{
+				this.EnableOnComplete.SetActive(true);
+			}
 			this.timeOnTarget += Time.deltaTime;
 			if (this.timeOnTarget >= this.TimeAtTarget)
 			{
@@ -56,8 +62,9 @@ public class GridPuzzlePathFollower : MonoBehaviour
 		this.isDone = this.Move(this.Speed, Time.deltaTime);
 	}
 
-	public void FollowPath(List<Vector3> points, float speed)
+	public void FollowPath(List<Vector3> points, float speed, GameObject toEnable = null)
 	{
+		this.EnableOnComplete = toEnable;
 		this.Speed = speed;
 		VectorPath = points;
 		Init();

@@ -121,7 +121,7 @@ public class GridPuzzleActionManager : DSTools.MessengerListener
 	{
 		if ((actor == null) || (this.queues == null))
 		{
-			return true;
+			return false;
 		}
 
 		GridPuzzleActionQueue queue;
@@ -162,6 +162,21 @@ public class GridPuzzleActionManager : DSTools.MessengerListener
 		return false;
 	}
 
+	public bool HasActions(GridPuzzleActor actor)
+	{
+		if ((actor == null) || (this.queues == null))
+		{
+			return false;
+		}
+
+		GridPuzzleActionQueue queue;
+		if (this.queues.TryGetValue(actor, out queue))
+		{
+			return (queue.Count() != 0);
+		}
+		return false;
+	}
+
 	public bool IsPlayerReady()
 	{
 		return (this.player != null) ? this.IsReady(this.player) : false;
@@ -175,6 +190,11 @@ public class GridPuzzleActionManager : DSTools.MessengerListener
 	public bool IsPlayerComplete()
 	{
 		return (this.player != null) ? this.IsComplete(this.player) : false;
+	}
+
+	public bool PlayerHasActions()
+	{
+		return (this.player != null) ? this.HasActions(this.player) : false;
 	}
 
 	public bool IsAnyoneActing()

@@ -96,9 +96,9 @@ public class GridPuzzleActor : DSTools.MessengerListener
 		int graphMask = this.GetGraphMask(GridPuzzleManager.Instance.cameraAngle);
 		seeker.StartPath(transform.position, cube.NavPosition, OnPathComplete, graphMask);
 
-		Debug.Log("RequestMoveTo graphMask=" + graphMask);
-		Debug.Log("RequestMoveTo " + cube.NavPosition.x + "," + cube.NavPosition.y + "," + cube.NavPosition.z);
-		Debug.Log("Node pos=" + nodeInfo.clampedPosition.x + "," + nodeInfo.clampedPosition.y + "," + nodeInfo.clampedPosition.z);
+		//Debug.Log("RequestMoveTo graphMask=" + graphMask);
+		//Debug.Log("RequestMoveTo " + cube.NavPosition.x + "," + cube.NavPosition.y + "," + cube.NavPosition.z);
+		//Debug.Log("Node pos=" + nodeInfo.clampedPosition.x + "," + nodeInfo.clampedPosition.y + "," + nodeInfo.clampedPosition.z);
 
 		//GridPuzzleMoveTo action = new GridPuzzleMoveTo();
 		//action.Init(this.player.currentCube, cube);
@@ -123,7 +123,7 @@ public class GridPuzzleActor : DSTools.MessengerListener
 			GridPuzzleCube cube = cubes[i];
 
 			Vector3 pos = cube.NavPosition;
-			Debug.Log("OnPathComplete name=" + cube.name + " pos=" + pos.x + "," + pos.y + "," + pos.z);
+			//Debug.Log("OnPathComplete name=" + cube.name + " pos=" + pos.x + "," + pos.y + "," + pos.z);
 
 			GridPuzzleMoveTo action = new GridPuzzleMoveTo();
 			action.Init(lastCube, cube);
@@ -147,8 +147,8 @@ public class GridPuzzleActor : DSTools.MessengerListener
 		int graphMask = this.GetGraphMask(GridPuzzleManager.Instance.cameraAngle);
 		seeker.StartPath(transform.position, row.NavPosition, OnRowPathComplete, graphMask);
 
-		Debug.Log("RequestMoveTo graphMask=" + graphMask);
-		Debug.Log("RequestMoveTo " + row.NavPosition.x + "," + row.NavPosition.y + "," + row.NavPosition.z);
+		//Debug.Log("RequestMoveTo graphMask=" + graphMask);
+		//Debug.Log("RequestMoveTo " + row.NavPosition.x + "," + row.NavPosition.y + "," + row.NavPosition.z);
 
 		//GridPuzzleMoveTo action = new GridPuzzleMoveTo();
 		//action.Init(this.player.currentCube, cube);
@@ -157,7 +157,7 @@ public class GridPuzzleActor : DSTools.MessengerListener
 
 	public void OnRowPathComplete (Path p) 
 	{
-		Debug.Log("OnPathComplete length=" + p.GetTotalLength() + " graphMask=" + p.nnConstraint.graphMask);
+		//Debug.Log("OnPathComplete length=" + p.GetTotalLength() + " graphMask=" + p.nnConstraint.graphMask);
 		p.Claim(this);
 
 		GridPuzzle puzzle = GridPuzzleManager.Instance.GetCurrentPuzzle();
@@ -173,7 +173,7 @@ public class GridPuzzleActor : DSTools.MessengerListener
 			GridPuzzleCubeRow row = rows[i];
 
 			Vector3 pos = row.NavPosition;
-			Debug.Log("OnPathComplete name=" + row.name + " row=" + pos.x + "," + pos.y + "," + pos.z);
+			//Debug.Log("OnPathComplete name=" + row.name + " row=" + pos.x + "," + pos.y + "," + pos.z);
 
 			GridPuzzleMoveToRow action = new GridPuzzleMoveToRow();
 			action.Init(lastCubeRow, row);

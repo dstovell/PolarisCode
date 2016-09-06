@@ -47,15 +47,24 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 		FlickGesture [] flicks = this.cam.gameObject.GetComponents<FlickGesture>();
 		for (int i=0; i<flicks.Length; i++)
 		{
-			Debug.LogError("PlayerInput flick=" + flicks[i].name);
+			//Debug.LogError("PlayerInput flick=" + flicks[i].name);
 			flicks[i].Flicked += this.FlickedHandler;
 		}
 
 		TapGesture [] taps = this.cam.gameObject.GetComponents<TapGesture>();
 		for (int i=0; i<taps.Length; i++)
 		{
-			Debug.LogError("PlayerInput tap=" + taps[i].name);
+			//Debug.LogError("PlayerInput tap=" + taps[i].name);
 			taps[i].Tapped += this.TapHandler;
+		}
+
+
+		ScreenTransformGesture [] trans = this.cam.gameObject.GetComponents<ScreenTransformGesture>();
+		for (int i=0; i<trans.Length; i++)
+		{
+			Debug.LogError("PlayerInput ScreenTransformGesture=" + trans[i].name);
+			trans[i].Transformed += this.TransformedHandler;
+			trans[i].TransformCompleted += this.TransformCompletedHandler;
 		}
     }
 
@@ -76,6 +85,13 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 		for (int i=0; i<taps.Length; i++)
 		{
 			taps[i].Tapped -= this.TapHandler;
+		}
+
+		TransformGesture [] trans = this.cam.gameObject.GetComponents<TransformGesture>();
+		for (int i=0; i<trans.Length; i++)
+		{
+			trans[i].Transformed -= this.TransformedHandler;
+			trans[i].TransformCompleted -= this.TransformCompletedHandler;
 		}
     }
 
@@ -147,6 +163,25 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 				}
 			}
 		}
+	}
+
+	private void TransformedHandler(object sender, EventArgs e)
+	{
+		
+		//ScreenTransformGesture
+		ScreenTransformGesture gesture = sender as ScreenTransformGesture;
+		if (gesture != null)
+		{
+			Vector2 dragDelta = (gesture.NormalizedScreenPosition - gesture.PreviousNormalizedScreenPosition);
+			float amount = dragDelta.x;
+			//Debug.LogError("TransformedHandler amount=" + amount);
+			this.cam.OnManualInput(amount);
+		}
+	}
+
+	private void TransformCompletedHandler(object sender, EventArgs e)
+	{
+		this.cam.OnEndManualInput();
 	}
 
 	public override void OnMessage(string id, object obj1, object obj2)

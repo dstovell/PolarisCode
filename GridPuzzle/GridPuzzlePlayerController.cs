@@ -137,7 +137,6 @@ public class GridPuzzlePlayerController : MessengerListener
 		switch(newState)
 		{
 		case State.Idle:
-			this.anim.SetBool("Run", false);
 			break;
 		case State.Run:
 			this.anim.SetBool("Run", true);
@@ -157,6 +156,10 @@ public class GridPuzzlePlayerController : MessengerListener
 		switch(this.currentState)
 		{
 		case State.Idle:
+			if (this.anim.GetBool("Run") && !GridPuzzleActionManager.Instance.PlayerHasActions())
+			{
+				this.anim.SetBool("Run", false);
+			}
 			break;
 		case State.Run:
 			break;
@@ -289,6 +292,18 @@ public class GridPuzzlePlayerController : MessengerListener
 
 	public void TeleportTo(GameObject location)
 	{
+		if (this.lastTeleport != null)
+		{
+			Vector3 pos = this.transform.position;
+			List<Vector3> path = new List<Vector3>();
+			path.Add(pos);
+			pos.y = this.lastTeleport.transform.position.y + 2f;
+			path.Add(pos);
+			path.Add(location.transform.position);
+			GridPuzzleManager.Instance.SpawnPathFollower(path, 10f, 0f, this.gameObject);
+			this.gameObject.SetActive(false);
+		}
+
 		this.lastTeleport = location;
 		this.transform.position = location.transform.position;
 		this.transform.rotation = location.transform.rotation;

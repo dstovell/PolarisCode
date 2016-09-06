@@ -191,9 +191,9 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		return puzzle;
 	}
 
-	public void SpawnPathFollower(List<Vector3> path, float speed = 1f, float verticalAdjustment=0f)
+	public void SpawnPathFollower(List<Vector3> path, float speed = 1f, float verticalAdjustment=0f, GameObject toEnable=null)
 	{
-		Debug.LogError("SpawnPathFollower prefab=" + (this.pathFollowerPrefab != null) + " path.Count=" + path.Count);
+		//Debug.LogError("SpawnPathFollower prefab=" + (this.pathFollowerPrefab != null) + " path.Count=" + path.Count);
 		if ((this.pathFollowerPrefab != null) && (path != null) && (path.Count > 0))
 		{
 			List<Vector3> adjustedPath = new List<Vector3>(path);
@@ -211,7 +211,7 @@ public class GridPuzzleManager : DSTools.MessengerListener
 				return;
 			}
 
-			follower.FollowPath(adjustedPath, speed);
+			follower.FollowPath(adjustedPath, speed, toEnable);
 		}
 	}
 
