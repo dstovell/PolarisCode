@@ -9,14 +9,19 @@ public class GridPuzzleActionQueue
 		this.actions.Add(action);
 	}
 
-	public GridPuzzleAction NextAction()
+	public GridPuzzleAction CurrentAction()
 	{
 		return (this.actions.Count > 0) ? this.actions[0] : null;
 	}
 
+	public GridPuzzleAction NextAction()
+	{
+		return (this.actions.Count > 1) ? this.actions[1] : null;
+	}
+
 	public GridPuzzleAction StartAction()
 	{
-		GridPuzzleAction action = NextAction();
+		GridPuzzleAction action = CurrentAction();
 		if ((action != null) && (action.state == GridPuzzleAction.State.Pending))
 		{
 			action.Start();
@@ -26,7 +31,7 @@ public class GridPuzzleActionQueue
 
 	public GridPuzzleAction UpdateAction()
 	{
-		GridPuzzleAction action = NextAction();
+		GridPuzzleAction action = CurrentAction();
 		if ((action != null) && (action.state == GridPuzzleAction.State.Started))
 		{
 			action.Update();
@@ -36,7 +41,7 @@ public class GridPuzzleActionQueue
 
 	public GridPuzzleAction PopCompleteAction()
 	{
-		GridPuzzleAction action = NextAction();
+		GridPuzzleAction action = CurrentAction();
 		if ((action != null) && (action.state == GridPuzzleAction.State.Complete))
 		{
 			this.actions.Remove(action);
@@ -47,19 +52,19 @@ public class GridPuzzleActionQueue
 
 	public bool IsReady()
 	{
-		GridPuzzleAction action = NextAction();
+		GridPuzzleAction action = CurrentAction();
 		return ((action != null) && (action.state == GridPuzzleAction.State.Pending));
 	}
 
 	public bool IsActing()
 	{
-		GridPuzzleAction action = NextAction();
+		GridPuzzleAction action = CurrentAction();
 		return ((action != null) && (action.state == GridPuzzleAction.State.Started));
 	}
 
 	public bool IsComplete()
 	{
-		GridPuzzleAction action = NextAction();
+		GridPuzzleAction action = CurrentAction();
 		return ((action != null) && (action.state == GridPuzzleAction.State.Complete));
 	}
 
@@ -115,6 +120,29 @@ public class GridPuzzleActionManager : DSTools.MessengerListener
 		action.SetActor(actor);
 		this.queues[actor].AddAction(action);
 		return true;
+	}
+
+	public GridPuzzleAction GetActionStarting(GridPuzzleActor actor)
+	{
+		if ((actor == null) || (this.queues == null))
+		{
+			return null;
+		}
+
+		GridPuzzleActionQueue queue;
+		if (this.queues.TryGetValue(actor, out queue))
+		{
+			GridPuzzleAction current = queue.CurrentAction();
+			if (current.state == GridPuzzleAction.State.Complete)
+			{
+				return queue.NextAction();
+			}
+			else if (current.state == GridPuzzleAction.State.Pending)
+			{
+				return current;
+			}
+		}
+		return null;
 	}
 
 	public bool IsReady(GridPuzzleActor actor)
@@ -195,6 +223,11 @@ public class GridPuzzleActionManager : DSTools.MessengerListener
 	public bool PlayerHasActions()
 	{
 		return (this.player != null) ? this.HasActions(this.player) : false;
+	}
+
+	public GridPuzzleAction GetPlayerActionStarting()
+	{
+		return (this.player != null) ? this.GetActionStarting(this.player) : null;
 	}
 
 	public bool IsAnyoneActing()

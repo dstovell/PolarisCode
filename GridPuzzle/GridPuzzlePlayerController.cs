@@ -24,18 +24,29 @@ public class GridPuzzlePlayerPath
 
 	public bool isDone;
 
-	public GridPuzzlePlayerPath(List<Vector3> points)
+	public enum MoveType
 	{
+		Run,
+		Jump
+	}
+	public MoveType moveType = MoveType.Run;
+
+	public bool jumpUp = true;
+
+	public GridPuzzlePlayerPath(List<Vector3> points, MoveType mt = MoveType.Run)
+	{
+		this.moveType = mt;
 		this.nodes = new List<GridPuzzlePlayerPathNode>();
 		for (int i=0; i<points.Count; i++)
 		{
-			this.nodes.Add( new GridPuzzlePlayerPathNode(points[i]) );
+			this.nodes.Add( new GridPuzzlePlayerPathNode(points[i]));
 		}
 		Init();
 	}
 
-	public GridPuzzlePlayerPath(List<GridPuzzlePlayerPathNode> points)
+	public GridPuzzlePlayerPath(List<GridPuzzlePlayerPathNode> points, MoveType mt = MoveType.Run)
 	{
+		this.moveType = mt;
 		this.nodes = points;
 		Init();
 	}
@@ -66,9 +77,32 @@ public class GridPuzzlePlayerPath
 		}
 
 		Vector3 dest = this.nodes[this.currentTargetNode].destination;
-		this.postion = Vector3.MoveTowards(this.postion, dest, speed*deltaT);
 
-		if (Vector3.Distance(this.postion, dest) < 0.1)
+		if (this.moveType == MoveType.Run)
+		{
+			this.postion = Vector3.MoveTowards(this.postion, dest, speed*deltaT);
+		}
+		else if (this.moveType == MoveType.Jump)
+		{
+			if (jumpUp)
+			{
+				if (this.postion.y < (dest.y + 0.5f))
+				{
+					dest.y += 1.0f;
+				}
+			}
+			else 
+			{
+				if (Mathf.Abs(this.postion.x - dest.x) > 0.0f)
+				{
+					dest.y += 2f;
+				}
+				this.postion = Vector3.MoveTowards(this.postion, dest, speed*deltaT);
+			}
+
+		}
+
+		if (Vector3.Distance(this.postion, dest) < 0.01)
 		{
 			if (this.currentTargetNode == (this.nodes.Count - 1))
 			{
@@ -98,6 +132,7 @@ public class GridPuzzlePlayerController : MessengerListener
 		Jump
 	};
 	public State currentState;
+	private float timeInState = 0;
 
 	public enum Surface
 	{
@@ -132,6 +167,7 @@ public class GridPuzzlePlayerController : MessengerListener
 
 	public void SetState(State newState)
 	{
+		Debug.LogError("SetState newState=" + newState.ToString());
 		if (newState == this.currentState)
 		{
 			return;
@@ -142,14 +178,17 @@ public class GridPuzzlePlayerController : MessengerListener
 		case State.Idle:
 			break;
 		case State.Run:
+			this.anim.SetBool("Jump", false);
 			this.anim.SetBool("Run", true);
 			break;
 		case State.Jump:
+			this.anim.SetBool("Jump", true);
 			break;
 		default:
 			break;
 		}
 		this.currentState = newState;
+		this.timeInState = 0f;
 	}
 
 	void Update () 
@@ -167,6 +206,11 @@ public class GridPuzzlePlayerController : MessengerListener
 		case State.Run:
 			break;
 		case State.Jump:
+			if (this.timeInState > 0.5f)
+			{
+				this.anim.SetBool("Jump", false);
+			}
+			this.anim.SetBool("Run", false);
 			break;
 		default:
 			break;
@@ -186,9 +230,11 @@ public class GridPuzzlePlayerController : MessengerListener
 		//TODO: Make turnaround more graceful??
 		this.rb.rotation = this.desiredRotation; //Quaternion.RotateTowards(this.transform.rotation, this.desiredRotation, this.RotateSpeed*Time.deltaTime);
 
-		if (this.IsMoving())
+		if (this.IsMoving() || this.IsJumping())
 		{
-			if (this.IsPlaying("Run"))
+			bool isStateReady = this.IsJumping() ? (this.timeInState > 1.0f) : this.IsPlaying("Run");
+
+			if (isStateReady)
 			{
 				Vector3 movePos = this.movePath.Move(this.MoveSpeed, Time.deltaTime);
 				//movePos.y = this.transform.position.y;
@@ -211,11 +257,16 @@ public class GridPuzzlePlayerController : MessengerListener
 				}
 			}
 		}
+
+		this.timeInState += Time.deltaTime;
 	}
 
 	public void UpdateGravity()
 	{
-		this.rb.AddForce(9.8f * this.rb.mass * Vector3.down);
+		if (!this.IsJumping())
+		{
+			this.rb.AddForce(9.8f * this.rb.mass * Vector3.down);
+		}
 		return;
 
 		if (this.currentCube != null)
@@ -252,6 +303,11 @@ public class GridPuzzlePlayerController : MessengerListener
 		return (this.currentState == State.Run);
 	}
 
+	public bool IsJumping()
+	{
+		return (this.currentState == State.Jump);
+	}
+
 	public bool IsPlaying(string animName)
 	{
 		return this.anim.GetCurrentAnimatorStateInfo(0).IsName(animName);
@@ -272,6 +328,25 @@ public class GridPuzzlePlayerController : MessengerListener
 		this.SetState(State.Run);
 	}
 
+	public void JumpTo(GridPuzzleCubeRow row)
+	{
+		Vector3 pos = this.gameObject.transform.position;
+		Vector3 dest = row.NavPosition;
+		dest.z = pos.z;
+
+		List<Vector3> points = new List<Vector3>();
+		points.Add(pos);
+		points.Add(dest);
+
+		bool jumpUp = (dest.y > pos.y);
+		Debug.LogError("jumpUp=" + jumpUp);
+
+		this.movePath = new GridPuzzlePlayerPath(points, GridPuzzlePlayerPath.MoveType.Jump);
+		this.movePath.targetRow = row;
+		this.movePath.jumpUp = jumpUp;
+		this.SetState(State.Jump);
+	}
+
 	public void MoveTo(GridPuzzleCube cube)
 	{
 		//Debug.LogError("MoveTo pos=" + cube.NavPosition.x + "," + cube.NavPosition.y + "," + cube.NavPosition.z);
@@ -286,6 +361,21 @@ public class GridPuzzlePlayerController : MessengerListener
 		this.movePath = new GridPuzzlePlayerPath(points);
 		this.movePath.targetCube = cube;
 		this.SetState(State.Run);
+	}
+
+	public void JumpTo(GridPuzzleCube cube)
+	{
+		Vector3 pos = this.gameObject.transform.position;
+		Vector3 dest = cube.NavPosition;
+		dest.z = pos.z;
+
+		List<Vector3> points = new List<Vector3>();
+		points.Add(pos);
+		points.Add(dest);
+
+		this.movePath = new GridPuzzlePlayerPath(points, GridPuzzlePlayerPath.MoveType.Jump);
+		this.movePath.targetCube = cube;
+		this.SetState(State.Jump);
 	}
 
 	public void MovePath(List<GridPuzzleCube> cubes)

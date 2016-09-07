@@ -63,7 +63,7 @@ public class GridPuzzleActor : DSTools.MessengerListener
 	{
 		if (this.player != null)
 		{
-			return this.player.IsMoving();
+			return this.player.IsMoving() || this.player.IsJumping();
 		}
 		return false;
 	}
@@ -156,19 +156,18 @@ public class GridPuzzleActor : DSTools.MessengerListener
 		}
 	}
 
+	public void JumpTo(GridPuzzleCubeRow row)
+	{
+		if (this.player != null)
+		{
+			this.player.JumpTo(row);
+		}
+	}
+
 	public void RequestMoveTo(GridPuzzleCubeRow row)
 	{
-		//this.targetCube = cube;
-
 		int graphMask = this.GetGraphMask(GridPuzzleManager.Instance.cameraAngle);
 		seeker.StartPath(transform.position, row.NavPosition, OnRowPathComplete, graphMask);
-
-		//Debug.Log("RequestMoveTo graphMask=" + graphMask);
-		//Debug.Log("RequestMoveTo " + row.NavPosition.x + "," + row.NavPosition.y + "," + row.NavPosition.z);
-
-		//GridPuzzleMoveTo action = new GridPuzzleMoveTo();
-		//action.Init(this.player.currentCube, cube);
-		//this.RequestAction(action);
 	}
 
 	public void OnRowPathComplete (Path p) 
@@ -191,9 +190,20 @@ public class GridPuzzleActor : DSTools.MessengerListener
 			Vector3 pos = row.NavPosition;
 			//Debug.Log("OnPathComplete name=" + row.name + " row=" + pos.x + "," + pos.y + "," + pos.z);
 
-			GridPuzzleMoveToRow action = new GridPuzzleMoveToRow();
-			action.Init(lastCubeRow, row);
-			this.RequestAction(action);
+			float lastY = (lastCubeRow != null) ? lastCubeRow.NavPosition.y : this.transform.position.y;
+			if (Mathf.Abs(pos.y - lastY) > 0.2f)
+			{
+				Debug.LogError("GridPuzzleJumpToRow action dy=" + Mathf.Abs(pos.y - lastY));
+				GridPuzzleJumpToRow action = new GridPuzzleJumpToRow();
+				action.Init(lastCubeRow, row);
+				this.RequestAction(action);
+			}
+			else 
+			{
+				GridPuzzleMoveToRow action = new GridPuzzleMoveToRow();
+				action.Init(lastCubeRow, row);
+				this.RequestAction(action);
+			}
 			lastCubeRow = row;
 		}
 	}
