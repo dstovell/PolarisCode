@@ -19,6 +19,9 @@ public class GridPuzzlePlayerPath
 	private int currentTargetNode;
 	private Vector3 postion;
 
+	public GridPuzzleCube targetCube;
+	public GridPuzzleCubeRow targetRow;
+
 	public bool isDone;
 
 	public GridPuzzlePlayerPath(List<Vector3> points)
@@ -188,19 +191,25 @@ public class GridPuzzlePlayerController : MessengerListener
 			if (this.IsPlaying("Run"))
 			{
 				Vector3 movePos = this.movePath.Move(this.MoveSpeed, Time.deltaTime);
-				movePos.y = this.transform.position.y;
+				//movePos.y = this.transform.position.y;
+				if (this.movePath.targetRow != null)
+				{
+					movePos.z = this.transform.position.z;
+				}
 				this.transform.position = movePos;
 				if (this.movePath.isDone)
 				{
+					if (this.movePath.targetRow != null)
+					{
+						GridPuzzleCube closestCube = this.movePath.targetRow.GetClosestCube(this.transform.position);
+						if (closestCube != null)
+						{
+							this.transform.position = closestCube.NavPosition;//new Vector3(this.transform.position.x, this.transform.position.y, closestCube.NavPosition.z);
+						}
+					}
 					Stop();
 				}
 			}
-		}
-
-		//We have fallen!!!
-		if (this.transform.position.y < -10)
-		{
-			this.Respawn();
 		}
 	}
 
@@ -250,16 +259,16 @@ public class GridPuzzlePlayerController : MessengerListener
 
 	public void MoveTo(GridPuzzleCubeRow row)
 	{
-		GridPuzzleCube frontCube = row.GetFrontCube();
 		Vector3 pos = this.gameObject.transform.position;
 		Vector3 dest = row.NavPosition;
-		//dest.y = pos.y;
+		dest.z = pos.z;
 
 		List<Vector3> points = new List<Vector3>();
 		points.Add(pos);
 		points.Add(dest);
 
 		this.movePath = new GridPuzzlePlayerPath(points);
+		this.movePath.targetRow = row;
 		this.SetState(State.Run);
 	}
 
@@ -268,13 +277,14 @@ public class GridPuzzlePlayerController : MessengerListener
 		//Debug.LogError("MoveTo pos=" + cube.NavPosition.x + "," + cube.NavPosition.y + "," + cube.NavPosition.z);
 		Vector3 pos = this.gameObject.transform.position;
 		Vector3 dest = cube.NavPosition;
-		dest.y = pos.y;
+		//dest.y = pos.y;
 
 		List<Vector3> points = new List<Vector3>();
 		points.Add(pos);
 		points.Add(dest);
 
 		this.movePath = new GridPuzzlePlayerPath(points);
+		this.movePath.targetCube = cube;
 		this.SetState(State.Run);
 	}
 

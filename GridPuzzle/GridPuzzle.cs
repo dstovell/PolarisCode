@@ -217,6 +217,11 @@ public class GridPuzzle : MessengerListener
 					if ((cube != null) && this.IsTopCube(cube))
 					{
 						cube.CreateNavPoint();
+						BoxCollider	box = cube.gameObject.GetComponent<BoxCollider>();
+						if (box != null)
+						{
+							box.enabled = true;
+						}
 					}
 				}
 			}
@@ -228,6 +233,94 @@ public class GridPuzzle : MessengerListener
 			if ((row != null) && this.IsTopRow(row))
 			{
 				row.CreateNavPoint();
+			}
+		}
+	}
+
+	public List<GridPuzzleCube> GetPerspectiveAlignedCubes(GridPuzzleCube cube)
+	{
+		List<Vector3> cubeAlignmentVectors = new List<Vector3>();
+		List<bool> vectorUsed = new List<bool>();
+		cubeAlignmentVectors.Add(Vector3.right); vectorUsed.Add(false);
+		cubeAlignmentVectors.Add(Vector3.forward); vectorUsed.Add(false);
+
+		Vector3 deltaVector = new Vector3(1,-1,1);
+
+		Vector3 n1EdgePos = cube.NavPosition + new Vector3(0.5f, 0, 0f);
+
+		string [] maskStrings = new string[1]{"Cube"};
+		LayerMask mask = LayerMask.GetMask(maskStrings);
+
+		List<GridPuzzleCube> alignedCubes = new List<GridPuzzleCube>();
+		for (int i=1; i<2; i++)
+		{
+			for (int j=0; j<cubeAlignmentVectors.Count; j++)
+			{
+				if (vectorUsed[j])
+				{
+					continue;
+				}
+
+				Vector3 dv = cubeAlignmentVectors[j] + i*deltaVector;
+				GridPuzzleCube alignedCube = this.GetCube(cube.x + (int)dv.x, cube.y + (int)dv.y, cube.z + (int)dv.z);
+				if ((alignedCube != null) && this.IsTopCube(alignedCube))
+				{
+					Vector3 n2EdgePos = alignedCube.NavPosition + new Vector3(-0.5f, 0, 0f);;
+					Vector3 dir = (n2EdgePos - n1EdgePos).normalized;
+
+					alignedCubes.Add(alignedCube);
+
+					/*RaycastHit hitPoint = new RaycastHit();
+        			Ray ray = new Ray(transform.position, transform.forward);
+					//RayCast, then connect
+					if (Physics.Raycast(ray, out hitPoint, 20, mask))
+					{
+						if (hitPoint.collider.gameObject == alignedCube.gameObject)
+						{
+							alignedCubes.Add(alignedCube);
+						}
+						else
+						{
+							GridPuzzleCube cubeHit = hitPoint.collider.gameObject.GetComponent<GridPuzzleCube>();
+							Debug.LogError("expected " + alignedCube.x + ","+alignedCube.y +","+alignedCube.z + " got " + cubeHit.x + ","+cubeHit.y +","+cubeHit.z);
+						}
+					}
+					else
+					{
+						Debug.LogError("Hit nothing at distance " + 1.5f*i);
+					}*/
+				}
+			}
+		}
+		return alignedCubes;
+	}
+
+	public void LinkPerspectiveAlignedCubes(PointGraph graph)
+	{
+		for (int x=0; x<this.cubeGrid.GetLength(0); x++)
+		{
+			for (int y=0; y<this.cubeGrid.GetLength(1); y++)
+			{
+				for (int z=0; z<this.cubeGrid.GetLength(2); z++)
+				{
+					GridPuzzleCube cube = this.GetCube(x,y,z);
+					if ((cube != null) && this.IsTopCube(cube))
+					{
+						NNInfo node1 = graph.GetNearest(cube.NavPosition);
+
+						List<GridPuzzleCube> alignedCubes = this.GetPerspectiveAlignedCubes(cube);
+						for (int j=0; j<alignedCubes.Count; j++)
+						{
+							GridPuzzleCube alignedCube = alignedCubes[j];
+							NNInfo node2 = graph.GetNearest(alignedCube.NavPosition);
+
+							if (!node1.node.ContainsConnection(node2.node))
+							{
+								node1.node.AddConnection(node2.node, 1);
+							}
+						}
+					}
+				}
 			}
 		}
 	}

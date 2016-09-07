@@ -40,6 +40,8 @@ public class GridPuzzleCube : MessengerListener
 
 	public Material mat;
 
+	public bool IsNavigable = true;
+
 	public Vector3 NavPosition
 	{
 		get
@@ -99,7 +101,7 @@ public class GridPuzzleCube : MessengerListener
 
 	public void CreateNavPoint()
 	{
-		if (this.NavPoint == null)
+		if ((this.NavPoint == null) && this.IsNavigable)
 		{
 			this.NavPoint = new GameObject("NavPoint_Iso");
 			this.NavPoint.transform.position = this.NavPosition;

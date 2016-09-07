@@ -19,6 +19,7 @@ public class GridPuzzleCubeRow : DSTools.MessengerListener
 
 	private GridPuzzle parentPuzzle;
 
+	public bool IsNavigable = true;
 	public GameObject NavPoint;
 	public Vector3 NavPosition
 	{
@@ -123,7 +124,7 @@ public class GridPuzzleCubeRow : DSTools.MessengerListener
 
 	public void CreateNavPoint()
 	{
-		if (this.NavPoint == null)
+		if ((this.NavPoint == null) && this.IsNavigable)
 		{
 			GridPuzzleCube frontCube = this.GetFrontCube();
 			Vector3 nav = (frontCube != null) ? frontCube.NavPosition : this.NavPosition;
@@ -156,6 +157,27 @@ public class GridPuzzleCubeRow : DSTools.MessengerListener
 		}
 
 		return frontCube;
+	}
+
+	public GridPuzzleCube GetClosestCube(Vector3 pos)
+	{
+		GridPuzzleCube closestCube = null;
+		float closestDistance = 999999;
+		for (int j=0; j<this.cubes.Length; j++)
+		{
+			GridPuzzleCube cube = this.cubes[j];
+			if (cube != null)
+			{
+				float thisDistance = Vector3.Distance(cube.NavPosition, pos);
+				if (thisDistance < closestDistance)
+				{
+					closestCube = cube;
+					closestDistance = thisDistance;
+				}
+			}
+		}
+
+		return closestCube;
 	}
 
 	public int GetCubeCount()
@@ -259,6 +281,15 @@ public class GridPuzzleCubeRow : DSTools.MessengerListener
 			}
 		}
 	}
+
+	void OnCollisionEnter(Collision collisionInfo) 
+	{
+		GridPuzzlePlayerController controller = collisionInfo.collider.gameObject.GetComponent<GridPuzzlePlayerController>();
+		if (controller != null)
+		{
+			//Figure out which what they are from us and register ourself with them!
+		}
+    }
 
 	public override void OnMessage(string id, object obj1, object obj2)
 	{

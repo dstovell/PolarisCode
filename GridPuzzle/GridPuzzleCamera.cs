@@ -56,12 +56,12 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		this.settings[Angle.Side2D].verticalLensShift = 0f;
 
 		this.settings[Angle.Isometric] = new GridPuzzleCameraSettings();
-		this.settings[Angle.Isometric].orthographicSize = 3.35f;
-		this.settings[Angle.Isometric].cameraPosition = new Vector3(-4.84f, 2.32f, -4.96f);
+		this.settings[Angle.Isometric].orthographicSize = 3.8f;
+		this.settings[Angle.Isometric].cameraPosition = new Vector3(-4.84f, 3f, -4.96f);
 		this.settings[Angle.Isometric].cameraRotation = Quaternion.Euler(new Vector3(0f, 45f, 0f));
 		this.settings[Angle.Isometric].nearPlane = 0.1f;
 		this.settings[Angle.Isometric].farPlane = 500f;
-		this.settings[Angle.Isometric].verticalLensShift = -0.53f;
+		this.settings[Angle.Isometric].verticalLensShift = -0.7f;
 	}
 
 	// Use this for initialization
@@ -159,7 +159,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 	{
 		if (this.desiredAngle != this.currentAngle)
 		{
-			this.manualAngleT += 5f*deltaT;
+			this.manualAngleT += 2f*deltaT;
 
 			if (this.manualAngleT > 0.98f) 
 			{

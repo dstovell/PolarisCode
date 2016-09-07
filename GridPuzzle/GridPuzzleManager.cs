@@ -261,6 +261,7 @@ public class GridPuzzleManager : DSTools.MessengerListener
 
 		puzzle.SetupNavPoints(this.path.astarData.pointGraph);
 		this.path.Scan();
+		puzzle.LinkPerspectiveAlignedCubes(this.path.astarData.pointGraph);
 	}
 
 	private void MakePosition(GridPuzzle puzzle, PuzzlePosition pos)

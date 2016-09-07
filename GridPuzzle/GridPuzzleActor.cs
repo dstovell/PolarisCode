@@ -32,11 +32,26 @@ public class GridPuzzleActor : DSTools.MessengerListener
 	
 	void Update () 
 	{
+		//We have fallen!!!
+		if (this.transform.position.y < -10)
+		{
+			this.RequestKill();
+		}
 	}
 
 	public bool RequestAction(GridPuzzleAction action)
 	{
 		return GridPuzzleActionManager.Instance.RequestAction(this, action);
+	}
+
+	public bool RequestKill()
+	{
+		if (this.player != null)
+		{
+			this.player.Respawn();
+			return true;
+		}
+		return false;
 	}
 
 	public bool IsActing()
@@ -97,7 +112,8 @@ public class GridPuzzleActor : DSTools.MessengerListener
 		seeker.StartPath(transform.position, cube.NavPosition, OnPathComplete, graphMask);
 
 		//Debug.Log("RequestMoveTo graphMask=" + graphMask);
-		//Debug.Log("RequestMoveTo " + cube.NavPosition.x + "," + cube.NavPosition.y + "," + cube.NavPosition.z);
+		Debug.Log("RequestMove From " + transform.position.x + "," + transform.position.y + "," + transform.position.z);
+		Debug.Log("RequestMove To " + cube.NavPosition.x + "," + cube.NavPosition.y + "," + cube.NavPosition.z);
 		//Debug.Log("Node pos=" + nodeInfo.clampedPosition.x + "," + nodeInfo.clampedPosition.y + "," + nodeInfo.clampedPosition.z);
 
 		//GridPuzzleMoveTo action = new GridPuzzleMoveTo();

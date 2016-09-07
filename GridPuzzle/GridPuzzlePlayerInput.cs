@@ -167,7 +167,12 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 
 	private void TransformedHandler(object sender, EventArgs e)
 	{
-		
+		if (GridPuzzleActionManager.Instance.IsAnyoneActing() || GridPuzzleActionManager.Instance.PlayerHasActions())
+		{
+			this.cam.OnEndManualInput();
+			return;
+		}
+
 		//ScreenTransformGesture
 		ScreenTransformGesture gesture = sender as ScreenTransformGesture;
 		if (gesture != null)
