@@ -93,9 +93,10 @@ public class GridPuzzlePlayerPath
 			}
 			else 
 			{
-				if (Mathf.Abs(this.postion.x - dest.x) > 0.0f)
+				if (Mathf.Abs(this.postion.x - dest.x) > 0.25f)
 				{
-					dest.y += 2f;
+					speed *= 0.8f;
+					dest.y = this.postion.y;
 				}
 				this.postion = Vector3.MoveTowards(this.postion, dest, speed*deltaT);
 			}
