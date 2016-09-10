@@ -70,14 +70,13 @@ public class GridPuzzle : MessengerListener
 	public GridPuzzlePortal exitPoint;
 	public GridPuzzleCubeRow [] rows;
 
-	private PointGraph navGraph;
+	private PointGraph IsometricGraph;
+	private PointGraph Side2dGraph;
 
 	public GridPuzzleCamera.Angle currentAngle = GridPuzzleCamera.Angle.None;
 
 	public GridPuzzleManager.PuzzlePosition postion = GridPuzzleManager.PuzzlePosition.None;
 	public GridPuzzleManager.PuzzlePosition previousPosition = GridPuzzleManager.PuzzlePosition.None;
-
-	public Vector3 [] navNeighbourDirs;
 
 	private bool markedForDelete = false;
 
@@ -90,17 +89,23 @@ public class GridPuzzle : MessengerListener
 		//Fix();
 	}
 
+	private List<Vector3> geoNeighbourDirs;
 	public List<Vector3> GetGeoNeighbourDirs()
 	{
-		List<Vector3> geoNeighbourDirs = new List<Vector3>();
-		geoNeighbourDirs.Add(Vector3.up);
-		geoNeighbourDirs.Add(Vector3.down);
-		geoNeighbourDirs.Add(Vector3.left);
-		geoNeighbourDirs.Add(Vector3.right);
-		geoNeighbourDirs.Add(Vector3.forward);
-		geoNeighbourDirs.Add(Vector3.back);
+		if (this.geoNeighbourDirs != null)
+		{
+			return this.geoNeighbourDirs;
+		}
 
-		return geoNeighbourDirs;
+		this.geoNeighbourDirs = new List<Vector3>();
+		this.geoNeighbourDirs.Add(Vector3.up);
+		this.geoNeighbourDirs.Add(Vector3.down);
+		this.geoNeighbourDirs.Add(Vector3.left);
+		this.geoNeighbourDirs.Add(Vector3.right);
+		this.geoNeighbourDirs.Add(Vector3.forward);
+		this.geoNeighbourDirs.Add(Vector3.back);
+
+		return this.geoNeighbourDirs;
 	}
 
 	public GridPuzzleCube GetCubeByNavPoint(Vector3 navPoint)
@@ -197,46 +202,6 @@ public class GridPuzzle : MessengerListener
 		return cubes;
 	}
 
-	public void SetupNavPoints(PointGraph graph)
-	{
-		this.navGraph = graph;
-		Debug.Log("SetupNavPoints");
-		if(this.cubeGrid == null)
-		{
-			return;
-		}
-
-		Debug.Log("SetupNavPoints started");
-		for (int x=0; x<this.cubeGrid.GetLength(0); x++)
-		{
-			for (int y=0; y<this.cubeGrid.GetLength(1); y++)
-			{
-				for (int z=0; z<this.cubeGrid.GetLength(2); z++)
-				{
-					GridPuzzleCube cube = this.GetCube(x,y,z);
-					if ((cube != null) && this.IsTopCube(cube))
-					{
-						cube.CreateNavPoint();
-						BoxCollider	box = cube.gameObject.GetComponent<BoxCollider>();
-						if (box != null)
-						{
-							box.enabled = true;
-						}
-					}
-				}
-			}
-		}
-
-		for (int i=0; i<this.rows.Length; i++)
-		{
-			GridPuzzleCubeRow row = this.rows[i];
-			if ((row != null) && this.IsTopRow(row))
-			{
-				row.CreateNavPoint();
-			}
-		}
-	}
-
 	public List<GridPuzzleCube> GetPerspectiveAlignedCubes(GridPuzzleCube cube)
 	{
 		List<Vector3> cubeAlignmentVectors = new List<Vector3>();
@@ -263,7 +228,7 @@ public class GridPuzzle : MessengerListener
 
 				Vector3 dv = cubeAlignmentVectors[j] + i*deltaVector;
 				GridPuzzleCube alignedCube = this.GetCube(cube.x + (int)dv.x, cube.y + (int)dv.y, cube.z + (int)dv.z);
-				if ((alignedCube != null) && this.IsTopCube(alignedCube))
+				if ((alignedCube != null) && alignedCube.IsNavigable)
 				{
 					Vector3 n2EdgePos = alignedCube.NavPosition + new Vector3(-0.5f, 0, 0f);;
 					Vector3 dir = (n2EdgePos - n1EdgePos).normalized;
@@ -295,8 +260,96 @@ public class GridPuzzle : MessengerListener
 		return alignedCubes;
 	}
 
-	public void LinkPerspectiveAlignedCubes(PointGraph graph)
+	public void Scan(AstarPath path)
 	{
+		this.IsometricGraph = path.astarData.AddGraph(typeof(PointGraph)) as PointGraph;
+		this.IsometricGraph.searchTag = "NavPoint_Iso";
+		this.IsometricGraph.maxDistance = 1.01f;
+		this.IsometricGraph.limits.x = 1.01f;
+		this.IsometricGraph.limits.y = 1.01f;
+		this.IsometricGraph.limits.z = 1.01f;
+		this.IsometricGraph.raycast = false;
+
+		this.Side2dGraph = path.astarData.AddGraph(typeof(PointGraph)) as PointGraph;
+		this.Side2dGraph.searchTag = "NavPoint_Side2D";
+		this.Side2dGraph.maxDistance = 3.0f;
+		this.Side2dGraph.limits.x = 1.2f;
+		this.Side2dGraph.limits.y = 3.01f;
+		this.Side2dGraph.limits.z = 1.0f;
+		this.IsometricGraph.raycast = false;
+
+		path.Scan();
+
+		if ((this.cubeGrid == null) || (this.IsometricGraph == null) || (this.Side2dGraph == null))
+		{
+			return;
+		}
+
+		this.ScanIsometric(this.IsometricGraph);
+		this.ScanSide2d(this.Side2dGraph);
+	}
+
+	public void ScanIsometric(PointGraph isometricGraph)
+	{
+		this.IsometricGraph = isometricGraph;
+
+		if ((this.cubeGrid == null) || (this.IsometricGraph == null))
+		{
+			return;
+		}
+
+		this.cubeNavLinks = new Dictionary<int, CubeNavLink>();
+
+		this.SetupIsometricNavPoints(false);
+
+		this.LinkNavigableCubes();
+	}
+
+	public void ScanSide2d(PointGraph side2dGraph)
+	{
+		this.Side2dGraph = side2dGraph;
+
+		if ((this.cubeGrid == null) || (this.Side2dGraph == null))
+		{
+			return;
+		}
+
+		this.rowNavLinks = new Dictionary<int, CubeRowNavLink>();
+
+		this.SetupSide2dNavPoints(false);
+	}
+
+	public class CubeNavLink
+	{
+		public CubeNavLink(PointNode n, GridPuzzleCube c)
+		{
+			this.node = n;
+			this.cube = c;
+		}
+
+		public PointNode node;
+		public GridPuzzleCube cube;
+	}
+
+	public class CubeRowNavLink
+	{
+		public CubeRowNavLink(PointNode n, GridPuzzleCubeRow r)
+		{
+			this.node = n;
+			this.row = r;
+		}
+
+		public PointNode node;
+		public GridPuzzleCubeRow row;
+	}
+
+	private Dictionary<int, CubeNavLink> cubeNavLinks;
+	private Dictionary<int, CubeRowNavLink> rowNavLinks;
+
+	private void SetupIsometricNavPoints(bool tagOnly = false)
+	{
+		int pointsAdded = 0;
+
 		for (int x=0; x<this.cubeGrid.GetLength(0); x++)
 		{
 			for (int y=0; y<this.cubeGrid.GetLength(1); y++)
@@ -304,25 +357,148 @@ public class GridPuzzle : MessengerListener
 				for (int z=0; z<this.cubeGrid.GetLength(2); z++)
 				{
 					GridPuzzleCube cube = this.GetCube(x,y,z);
-					if ((cube != null) && this.IsTopCube(cube))
+					if ((cube != null) && this.IsTopCube(cube) && cube.IsNavigable)
 					{
-						NNInfo node1 = graph.GetNearest(cube.NavPosition);
-
-						List<GridPuzzleCube> alignedCubes = this.GetPerspectiveAlignedCubes(cube);
-						for (int j=0; j<alignedCubes.Count; j++)
+						if (tagOnly)
 						{
-							GridPuzzleCube alignedCube = alignedCubes[j];
-							NNInfo node2 = graph.GetNearest(alignedCube.NavPosition);
-
-							if (!node1.node.ContainsConnection(node2.node))
-							{
-								node1.node.AddConnection(node2.node, 1);
-							}
+							cube.CreateNavPoint();
 						}
+						else
+						{
+							PointNode node = null;
+							Int3 pos = new Int3(cube.NavPosition);
+							NNInfo info = this.IsometricGraph.GetNearest(cube.NavPosition);
+							if ((info.node != null) && (info.node.position == pos))
+							{
+								node = info.node as PointNode;
+							}
+							else
+							{
+								this.IsometricGraph.AddNode(pos);
+								node.Walkable = true;
+								pointsAdded++;
+							}
+							cube.NavGridIndex = node.NodeIndex;
+							cubeNavLinks.Add( node.NodeIndex, new CubeNavLink(node, cube) );
+						}
+
+						BoxCollider	box = cube.gameObject.GetComponent<BoxCollider>();
+						if (box != null)
+						{
+							box.enabled = true;
+						}
+					}
+					else if (cube != null)
+					{
+						cube.IsNavigable = false;
 					}
 				}
 			}
 		}
+
+		//Debug.LogError("SetupIsometricNavPoints pointsAdded=" + pointsAdded);
+	}
+
+	private void SetupSide2dNavPoints(bool tagOnly = false)
+	{
+		int pointsAdded = 0;
+
+		for (int i=0; i<this.rows.Length; i++)
+		{
+			GridPuzzleCubeRow row = this.rows[i];
+			if ((row != null) && this.IsTopRow(row) && row.IsNavigable)
+			{
+				if (tagOnly)
+				{
+					row.CreateNavPoint();
+				}
+				else
+				{
+					PointNode node = null;
+					Int3 pos = new Int3(row.NavPosition);
+					NNInfo info = this.Side2dGraph.GetNearest(row.NavPosition);
+					if ((info.node != null) && (info.node.position == pos))
+					{
+						node = info.node as PointNode;
+					}
+					else
+					{
+						node = this.Side2dGraph.AddNode(pos);
+						node.Walkable = true;
+						pointsAdded++;
+					}
+					row.NavGridIndex = node.NodeIndex;
+					rowNavLinks.Add( node.NodeIndex, new CubeRowNavLink(node, row) );
+				}
+			}
+			else if (row != null)
+			{
+				row.IsNavigable = false;
+			}
+		}
+
+		//Debug.LogError("SetupSide2dNavPoints pointsAdded=" + pointsAdded);
+	}
+
+	private int LinkCubes(GridPuzzleCube cube, PointNode cubeNode, List<GridPuzzleCube> linkedCubes, float cost)
+	{
+		int cubesLinked = 0;
+		for (int j=0; j<linkedCubes.Count; j++)
+		{
+			GridPuzzleCube linkedCube = linkedCubes[j];
+			PointNode linkedNode = this.cubeNavLinks[linkedCube.NavGridIndex].node;
+
+			if (cubeNode.connections != null)
+			{
+				if (cubeNode.ContainsConnection(linkedNode))
+				{
+					continue;
+				}
+			}
+			else if (linkedNode == cubeNode)
+			{
+				continue;
+			}
+
+			uint wackyCost = (uint)Mathf.RoundToInt(cost*Int3.FloatPrecision);
+
+			cubeNode.AddConnection(linkedNode, wackyCost);
+			linkedNode.AddConnection(cubeNode, wackyCost);
+			cubesLinked++;
+			Vector3 p1 = (Vector3)cubeNode.position;
+			Vector3 p2 = (Vector3)linkedNode.position;
+			//Debug.Log("CubesLinked " + p1.x + "," + p1.y + "," + p1.z + " -> " + p2.x + "," + p2.y + "," + p2.z);
+		}
+		return cubesLinked;
+	}
+
+	private void LinkNavigableCubes()
+	{
+		int cubesSearched = 0;
+		int cubesLinked = 0;
+		int cubesLinkedPerspective = 0;
+
+		for (int x=0; x<this.cubeGrid.GetLength(0); x++)
+		{
+			for (int y=0; y<this.cubeGrid.GetLength(1); y++)
+			{
+				for (int z=0; z<this.cubeGrid.GetLength(2); z++)
+				{
+					GridPuzzleCube cube = this.GetCube(x,y,z);
+					if ((cube != null) && cube.IsNavigable && this.cubeNavLinks.ContainsKey(cube.NavGridIndex))
+					{
+						cubesSearched++;
+						PointNode node = this.cubeNavLinks[cube.NavGridIndex].node;
+
+						cubesLinked += this.LinkCubes(cube, node, this.GetNavNeighbours(cube), 1);
+
+						cubesLinkedPerspective += this.LinkCubes(cube, node, this.GetPerspectiveAlignedCubes(cube), 3);
+					}
+				}
+			}
+		}
+
+		Debug.LogError("LinkNavigableCubes cubesSearched=" + cubesSearched + " cubesLinked=" + cubesLinked + " cubesLinkedPerspective=" + cubesLinkedPerspective);
 	}
 
 	public void Optimize()
@@ -342,7 +518,7 @@ public class GridPuzzle : MessengerListener
 					GridPuzzleCube cube = this.GetCube(x,y,z);
 					if (cube != null)
 					{
-						List<GridPuzzleCube> neighbours = this.GetNeighbours(cube);
+						List<GridPuzzleCube> neighbours = this.GetGeoNeighbours(cube);
 						for (int i=0; i<neighbours.Count; i++)
 						{
 							bool allRemoved = cube.RemoveSharedSurfaces(neighbours[i]);
@@ -378,14 +554,9 @@ public class GridPuzzle : MessengerListener
 		}
 	}
 
-	public bool HasRelativeNeighbour(GridPuzzleCube cube, Vector3 dir, string name)
+	public bool HasRelativeNeighbour(GridPuzzleCube cube, Vector3 dir)
 	{
-		Vector3 posToCheck = cube.GridPositon + dir;
-		Debug.Log(name  
-					+ " " + cube.GridPositon.x + "," + cube.GridPositon.y + "," + cube.GridPositon.z 
-					+ " + " + dir.x + "," + dir.y + "," + dir.z 
-					+ " => " + posToCheck.x + "," + posToCheck.y + "," + posToCheck.z);
-		return this.IsCubeAt(Mathf.FloorToInt(posToCheck.x), Mathf.FloorToInt(posToCheck.y), Mathf.FloorToInt(posToCheck.z));
+		return (this.GetNeighbour(cube, dir) != null);
 	}
 
 	public GridPuzzleCube GetNeighbour(GridPuzzleCube cube, Vector3 pos)
@@ -398,14 +569,14 @@ public class GridPuzzle : MessengerListener
 		int x = cube.x + dx;
 		int y = cube.y + dy;
 		int z = cube.z + dz;
-		Debug.Log(name  
-					+ " " + cube.x + "," + cube.y + "," + cube.z 
-					+ " + " + dx + "," + dy + "," + dz 
-					+ " => " + x + "," + y + "," + z);
+//		Debug.Log(name  
+//					+ " " + cube.x + "," + cube.y + "," + cube.z 
+//					+ " + " + dx + "," + dy + "," + dz 
+//					+ " => " + x + "," + y + "," + z);
 		return this.GetCube(x, y, z);
 	}
 
-	public List<GridPuzzleCube> GetNeighbours(GridPuzzleCube cube)
+	public List<GridPuzzleCube> GetGeoNeighbours(GridPuzzleCube cube)
 	{
 		List<Vector3> dirs = this.GetGeoNeighbourDirs();
 
@@ -420,6 +591,44 @@ public class GridPuzzle : MessengerListener
 			}
 		}
 		return list;
+	}
+
+	public List<GridPuzzleCube> GetNavNeighbours(GridPuzzleCube cube)
+	{
+		List<Vector3> dirs = new List<Vector3>();
+		dirs.Add(Vector3.left);
+		dirs.Add(Vector3.right);
+		dirs.Add(Vector3.forward);
+		dirs.Add(Vector3.back);
+
+		List<GridPuzzleCube> navNeighbours = new List<GridPuzzleCube>();
+		for (int i=0; i<dirs.Count; i++)
+		{
+			Vector3 dir = dirs[i];
+			GridPuzzleCube cubeToAdd = null;
+
+			cubeToAdd = this.GetNeighbour(cube, dir + Vector3.up);
+			if ((cubeToAdd != null) && cubeToAdd.IsNavigable)
+			{
+				navNeighbours.Add(cubeToAdd);
+				continue;
+			}
+
+			cubeToAdd = this.GetNeighbour(cube, dir);
+			if ((cubeToAdd != null) && cubeToAdd.IsNavigable)
+			{
+				navNeighbours.Add(cubeToAdd);
+				continue;
+			}
+
+			cubeToAdd = this.GetNeighbour(cube, dir + Vector3.down);
+			if ((cubeToAdd != null) && cubeToAdd.IsNavigable)
+			{
+				navNeighbours.Add(cubeToAdd);
+				continue;
+			}
+		}
+		return navNeighbours;
 	}
 	
 	// Update is called once per frame

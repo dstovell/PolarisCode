@@ -11,7 +11,7 @@ public class GridPuzzleMoveTo : GridPuzzleAction
 	{
 		if (this.actor != null)
 		{
-			this.actor.MoveTo(this.endCube);
+			this.actor.MovePath(this.cubePath);
 		}
 	}
 

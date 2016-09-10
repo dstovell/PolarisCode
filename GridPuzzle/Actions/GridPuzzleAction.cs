@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class GridPuzzleAction
 {
@@ -15,8 +16,11 @@ public class GridPuzzleAction
 
 	protected GridPuzzleActor actor;
 
-	public GridPuzzleCube startCube;
-	public GridPuzzleCube endCube;
+	public List<GridPuzzleCube> cubePath;
+	public List<GridPuzzleCubeRow> cubeRowPath;
+
+	public int turnCount;
+	private int remainingTurnCount;
 
 	public bool IsPlayer
 	{
@@ -33,12 +37,36 @@ public class GridPuzzleAction
 
 	public void Init(GridPuzzleCube start, GridPuzzleCube end = null)
 	{
-		this.startCube = start;
-		this.endCube = end;
+		this.cubePath = new List<GridPuzzleCube>();
+		this.cubePath.Add(start);
+		this.cubePath.Add(end);
 
 		this.state = State.Pending;
 		InitAction();
 	}
+
+	public void Init(List<GridPuzzleCube> path, int turns = -1)
+	{
+		//Debug.LogError("Init cube path=" + path.Count + " p0=" + path[0].NavPosition.ToString() + " p1=" + path[1].NavPosition.ToString());
+		this.cubePath = path;
+		this.turnCount = turns;
+		this.remainingTurnCount = (turns >= 0) ? turns : path.Count;
+
+		this.state = State.Pending;
+		InitAction();
+	}
+
+	public void Init(List<GridPuzzleCubeRow> path, int turns = -1)
+	{
+		//Debug.LogError("Init row path=" + path.Count);
+		this.cubeRowPath = new List<GridPuzzleCubeRow>(path);
+		this.turnCount = turns;
+		this.remainingTurnCount = (turns >= 0) ? turns : path.Count;
+
+		this.state = State.Pending;
+		InitAction();
+	}
+
 
 	public void Start()
 	{
@@ -54,11 +82,20 @@ public class GridPuzzleAction
 		}
 	}
 
+	public void Turn()
+	{
+		this.remainingTurnCount = Mathf.Max(this.remainingTurnCount - 1, 0);
+		if (state == State.Started)
+		{
+			this.TurnAction();
+		}
+	}
+
 	public void Update()
 	{
 		if (state == State.Started)
 		{
-			UpdateAction();
+			this.UpdateAction();
 		}
 	}
 
@@ -75,11 +112,20 @@ public class GridPuzzleAction
 		}
 	}
 
+	public bool IsTurnsComplete()
+	{
+		return (this.remainingTurnCount == 0);
+	}
+
 	protected virtual void InitAction()
 	{
 	}
 
 	protected virtual void StartAction()
+	{
+	}
+
+	protected virtual void TurnAction()
 	{
 	}
 

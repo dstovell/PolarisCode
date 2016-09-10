@@ -22,13 +22,6 @@ public enum SurfaceMaterial
 	Glass,
 }
 
-public enum MagneticCharge
-{
-	None,
-	Positive,
-	Negative
-}
-
 public class SurfaceComponent : MonoBehaviour
 {
 	public bool updateMat = false;

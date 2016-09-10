@@ -121,7 +121,7 @@ public class GridPuzzlePlayerPath
 }
 
 
-public class GridPuzzlePlayerController : MessengerListener
+public class GridPuzzlePlayerController : GridPuzzleNavigable
 {
 	public float MoveSpeed = 1f;
 	public float RotateSpeed = 1f;
@@ -142,9 +142,8 @@ public class GridPuzzlePlayerController : MessengerListener
 	}
 	public Surface currentSurface;
 
-	public MagneticCharge currentCharge = MagneticCharge.None;
-
 	public GridPuzzleCube currentCube = null;
+	public GridPuzzleCubeRow currentCubeRow = null;
 
 	private Rigidbody rb;
 
@@ -152,9 +151,15 @@ public class GridPuzzlePlayerController : MessengerListener
 
 	private GridPuzzlePlayerPath movePath;
 
+	public SWS.PathManager currentPath;
+	public bool moverStarted = false;
+
 	public Quaternion desiredRotation;
 
 	private GameObject lastTeleport;
+
+	private SWS.splineMove mover;
+	private SWS.PathManager pathManager;
 
 	// Use this for initialization
 	void Start() 
@@ -164,11 +169,13 @@ public class GridPuzzlePlayerController : MessengerListener
 		this.currentSurface = Surface.Floor;
 		this.anim = this.gameObject.GetComponent<Animator>();
 		this.rb = this.gameObject.GetComponent<Rigidbody>();
+		this.mover = this.gameObject.GetComponent<SWS.splineMove>();
+		this.pathManager = this.gameObject.GetComponent<SWS.PathManager>();
 	}
 
 	public void SetState(State newState)
 	{
-		Debug.LogError("SetState newState=" + newState.ToString());
+		//Debug.LogError("SetState newState=" + newState.ToString());
 		if (newState == this.currentState)
 		{
 			return;
@@ -235,7 +242,7 @@ public class GridPuzzlePlayerController : MessengerListener
 		{
 			bool isStateReady = this.IsJumping() ? (this.timeInState > 1.0f) : this.IsPlaying("Run");
 
-			if (isStateReady)
+			if (isStateReady && (this.movePath != null))
 			{
 				Vector3 movePos = this.movePath.Move(this.MoveSpeed, Time.deltaTime);
 				//movePos.y = this.transform.position.y;
@@ -255,6 +262,34 @@ public class GridPuzzlePlayerController : MessengerListener
 						}
 					}
 					Stop();
+				}
+			}
+			isStateReady = true;
+			if (isStateReady && (this.currentPath != null))
+			{
+				if(!this.moverStarted)
+				{
+					this.moverStarted = true;
+					this.mover.speed = this.MoveSpeed;
+					this.mover.SetPath(this.currentPath);
+				}
+				else 
+				{
+					//Debug.Log("currentPoint=" + this.mover.currentPoint + " / " + this.mover.waypoints.Length );
+					bool atFinalNode = (this.mover.currentPoint == (this.mover.waypoints.Length-1));
+					if (atFinalNode)
+					{
+						if (this.angle != GridPuzzleCamera.Angle.Isometric)
+						{
+							GridPuzzleCube closestCube = (this.currentCubeRow != null) ? this.currentCubeRow.GetClosestCube(this.transform.position) : null;
+							if (closestCube != null)
+							{
+								this.transform.position = closestCube.NavPosition;
+							}
+						}
+
+						this.Stop();
+					}
 				}
 			}
 		}
@@ -340,7 +375,7 @@ public class GridPuzzlePlayerController : MessengerListener
 		points.Add(dest);
 
 		bool jumpUp = (dest.y > pos.y);
-		Debug.LogError("jumpUp=" + jumpUp);
+		//Debug.LogError("jumpUp=" + jumpUp);
 
 		this.movePath = new GridPuzzlePlayerPath(points, GridPuzzlePlayerPath.MoveType.Jump);
 		this.movePath.targetRow = row;
@@ -379,15 +414,74 @@ public class GridPuzzlePlayerController : MessengerListener
 		this.SetState(State.Jump);
 	}
 
+	public void MovePath(List<GridPuzzleCubeRow> rows)
+	{
+		if (this.currentPath != null)
+		{
+			return;
+		}
+
+		//Debug.LogError("MovePath rows=" + rows.Count);
+
+		GameObject obj = new GameObject();
+		obj.name = "PlayerRowPath";
+
+		this.currentPath = obj.AddComponent<SWS.PathManager>();
+		this.currentPath.waypoints = new Transform[rows.Count];
+
+		//Current Pos
+		//GameObject cubeObj = new GameObject("PlayerRowStartNode");
+		//cubeObj.transform.position = this.transform.position;
+		//cubeObj.transform.rotation = this.transform.rotation;
+		//this.currentPath.waypoints[0] = cubeObj.transform;
+
+		//The rest of the path
+		for (int i=0; i<rows.Count; i++)
+		{
+			GameObject cubeObj = new GameObject("PlayerRowNode");
+
+			cubeObj.transform.position = rows[i].NavPosition;
+			//cubeObj.transform.rotation =;
+
+			cubeObj.transform.SetParent(obj.transform);
+			this.currentPath.waypoints[i] = cubeObj.transform;
+		}
+
+		this.moverStarted = false;
+
+		this.SetState(State.Run);
+	}
+
 	public void MovePath(List<GridPuzzleCube> cubes)
 	{
+		if (this.currentPath != null)
+		{
+			return;
+		}
+
+		//Debug.LogError("MovePath cubes=" + cubes.Count);
 		List<Vector3> points = new List<Vector3>();
 		for (int i=0; i<cubes.Count; i++)
 		{
 			points.Add( cubes[i].NavPosition );
 		}
 
-		this.movePath = new GridPuzzlePlayerPath(points);
+		GameObject obj = new GameObject();
+		obj.name = "PlayerCubePath";
+
+		this.currentPath = obj.AddComponent<SWS.PathManager>();
+		this.currentPath.waypoints = new Transform[cubes.Count];
+		for (int i=0; i<cubes.Count; i++)
+		{
+			GameObject cubeObj = new GameObject("PlayerCubeNode");
+			cubeObj.transform.position = cubes[i].NavPosition;
+			//cubeObj.transform.rotation =;
+			cubeObj.transform.SetParent(obj.transform);
+			this.currentPath.waypoints[i] = cubeObj.transform;
+		}
+
+		this.moverStarted = false;
+
 		this.SetState(State.Run);
 	}
 
@@ -418,7 +512,44 @@ public class GridPuzzlePlayerController : MessengerListener
 
 	public void Stop()
 	{
+		if (this.mover != null)
+		{
+			this.mover.Stop();
+		}
+		if (this.currentPath != null)
+		{
+			GameObject.Destroy(this.currentPath.gameObject);
+			this.currentPath = null;
+		}
+
 		this.movePath = null;
+
 		this.SetState(State.Idle);
+	}
+
+	void OnCollisionEnter(Collision info)
+	{
+		GameObject obj = info.collider.gameObject;
+		GridPuzzleCube cube = obj.GetComponent<GridPuzzleCube>();
+		if (cube != null)
+		{
+			this.currentCube = cube;
+			return;
+		}
+
+		GridPuzzleCubeRow row = obj.GetComponent<GridPuzzleCubeRow>();
+		if (row != null)
+		{
+			this.currentCubeRow = row;
+			return;
+		}
+	}
+
+	public void OnCameraAngleChange(GridPuzzleCamera.Angle newAngle)
+	{
+		if (this.angle != newAngle)
+		{
+			this.angle = newAngle;
+		}
 	}
 }

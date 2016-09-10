@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-public class GridPuzzleCubeRow : DSTools.MessengerListener
+public class GridPuzzleCubeRow : GridPuzzleNavigable
 {
 	public GridPuzzleCube [] cubes;
 
@@ -10,24 +10,10 @@ public class GridPuzzleCubeRow : DSTools.MessengerListener
 
 	private GridPuzzleVectorUIItem button = null;
 
-	public GridPuzzleCamera.Angle angle = GridPuzzleCamera.Angle.Side2D;
-
 	public int x;
 	public int y;
 
 	private int lastEditorIndex = 0;
-
-	private GridPuzzle parentPuzzle;
-
-	public bool IsNavigable = true;
-	public GameObject NavPoint;
-	public Vector3 NavPosition
-	{
-		get
-		{
-			return this.gameObject.transform.position + 0.5f*Vector3.up;
-		}
-	}
 
 	public bool IsColliderRow
 	{

@@ -62,7 +62,7 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 		ScreenTransformGesture [] trans = this.cam.gameObject.GetComponents<ScreenTransformGesture>();
 		for (int i=0; i<trans.Length; i++)
 		{
-			Debug.LogError("PlayerInput ScreenTransformGesture=" + trans[i].name);
+			//Debug.LogError("PlayerInput ScreenTransformGesture=" + trans[i].name);
 			trans[i].Transformed += this.TransformedHandler;
 			trans[i].TransformCompleted += this.TransformCompletedHandler;
 		}
@@ -153,12 +153,12 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 
 				if (cube != null)
 				{
-					Debug.Log("Hit cube " + cube.name);
+					//Debug.Log("Hit cube " + cube.name);
 					this.actor.RequestMoveTo(cube);
 				}
 				else if (cubeRow != null)
 				{
-					Debug.Log("Hit row " + cubeRow.name);
+					//Debug.Log("Hit row " + cubeRow.name);
 					this.actor.RequestMoveTo(cubeRow);
 				}
 			}

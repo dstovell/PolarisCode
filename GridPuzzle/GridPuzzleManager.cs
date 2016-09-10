@@ -7,8 +7,6 @@ public class GridPuzzleManager : DSTools.MessengerListener
 {
 	static public GridPuzzleManager Instance;
 
-	public AstarPath path;
-
 	public enum PuzzlePosition
 	{
 		None,
@@ -63,6 +61,11 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		{
 			this.loadedPuzzles[i].OnCameraAngleChange(angle);
 		}
+
+		for (int i=0; i<this.loadedActors.Count; i++)
+		{
+			this.loadedActors[i].OnCameraAngleChange(angle);
+		}
 	}
 
 	void Awake() 
@@ -73,11 +76,6 @@ public class GridPuzzleManager : DSTools.MessengerListener
 
 		this.PuzzleHeight = this.GridNodeHeight * (float)this.GridHeight;
 		this.PuzzleWidth = this.GridNodeWidth * (float)this.GridWidth;
-
-		if (this.path == null)
-		{
-			this.path = this.gameObject.GetComponentInChildren<AstarPath>();
-		}
 	}
 
 	// Use this for initialization
@@ -184,6 +182,8 @@ public class GridPuzzleManager : DSTools.MessengerListener
 
 		puzzle.Fix();
 
+		puzzle.OnCameraAngleChange(this.cameraAngle);
+
 		this.loadedPuzzles.Add(puzzle);
 
 		this.MakePosition(puzzle, positionOverride);
@@ -254,14 +254,19 @@ public class GridPuzzleManager : DSTools.MessengerListener
 
 	private void SetupPathfinding(GridPuzzle puzzle)
 	{
-		if ((puzzle == null) || (this.path == null))
+		if (puzzle == null)
 		{
 			return;
 		}
 
-		puzzle.SetupNavPoints(this.path.astarData.pointGraph);
-		this.path.Scan();
-		puzzle.LinkPerspectiveAlignedCubes(this.path.astarData.pointGraph);
+		puzzle.Scan(AstarPath.active);
+
+//		AstarPath.RegisterSafeUpdate (() => {
+//			
+//		});		
+		//puzzle.SetupNavPoints(this.path.astarData.graphs[0], this.path.astarData.graphs[1]);
+		//this.path.Scan();
+		//puzzle.LinkPerspectiveAlignedCubes(this.path.astarData.pointGraph);
 	}
 
 	private void MakePosition(GridPuzzle puzzle, PuzzlePosition pos)

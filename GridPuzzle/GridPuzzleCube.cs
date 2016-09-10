@@ -18,39 +18,17 @@ public enum CubeMaterial
 	Hazzard
 }
 
-public class GridPuzzleCube : MessengerListener 
+public class GridPuzzleCube : GridPuzzleNavigable 
 {
 	public BoxCollider box;
 
 	public GameObject [] surfaces;
 
-	public GameObject NegitiveFX;
-	public GameObject PositiveFX;
-
-	public MagneticCharge charge = MagneticCharge.None;
 	public CubeMaterial cubeMaterial = CubeMaterial.None;
-
-	public GridPuzzleCamera.Angle angle = GridPuzzleCamera.Angle.Side2D;
-
-	private GridPuzzleVectorUIItem button = null;
-
-	private MagneticCharge lastCharge = MagneticCharge.None;
-
-	private GridPuzzle parentPuzzle;
 
 	public Material mat;
 
-	public bool IsNavigable = true;
-
-	public Vector3 NavPosition
-	{
-		get
-		{
-			return this.gameObject.transform.position + 0.5f*Vector3.up;
-		}
-	}
-
-	public GameObject NavPoint;
+	private GridPuzzleVectorUIItem button = null;
 
 	public bool IsTop
 	{
@@ -96,49 +74,18 @@ public class GridPuzzleCube : MessengerListener
 			this.InitMessenger("GridPuzzleCubeRow");
 		}
 		this.OnCameraAngleChange(this.angle);
-		this.UpdateChargeFX();
+		this.UpdateMagnetic();
 	}
 
 	public void CreateNavPoint()
 	{
+		Debug.LogError("Cube.CreateNavPoint");
 		if ((this.NavPoint == null) && this.IsNavigable)
 		{
 			this.NavPoint = new GameObject("NavPoint_Iso");
 			this.NavPoint.transform.position = this.NavPosition;
 			this.NavPoint.transform.SetParent(this.transform);
 			this.NavPoint.tag = "NavPoint_Iso";
-		}
-	}
-
-	public void SetCharge(MagneticCharge _charge)
-	{
-		this.charge = _charge;
-	}
-
-	public void UpdateChargeFX() 
-	{
-		if (this.charge != this.lastCharge)
-		{
-			if ((this.NegitiveFX != null) && (this.PositiveFX != null)) 
-			{
-				if (this.charge == MagneticCharge.Positive)
-				{
-					this.PositiveFX.SetActive(true);
-					this.NegitiveFX.SetActive(false);
-				}
-				else if (this.charge == MagneticCharge.Negative)
-				{
-					this.PositiveFX.SetActive(false);
-					this.NegitiveFX.SetActive(true);
-				}
-				else
-				{
-					this.PositiveFX.SetActive(false);
-					this.NegitiveFX.SetActive(false);
-				}
-			}
-
-			this.lastCharge = this.charge;
 		}
 	}
 
@@ -158,7 +105,7 @@ public class GridPuzzleCube : MessengerListener
 	// Update is called once per frame
 	void Update () 
 	{
-		UpdateChargeFX();
+		UpdateMagnetic();
 		UpdateCollider();
 
 		/*if (GridPuzzleEditor.IsActive() && (this.angle == GridPuzzleCamera.Angle.Isometric))

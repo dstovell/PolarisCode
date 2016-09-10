@@ -10,6 +10,7 @@ public class GridPuzzleJumpToRow : GridPuzzleAction
 	{
 		this.startRow = start;
 		this.endRow = end;
+		this.turnCount = 1;
 
 		this.state = State.Pending;
 		InitAction();

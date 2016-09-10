@@ -44,6 +44,14 @@ public class GridPuzzleActor : DSTools.MessengerListener
 		return GridPuzzleActionManager.Instance.RequestAction(this, action);
 	}
 
+	public void OnCameraAngleChange(GridPuzzleCamera.Angle angle)
+	{
+		if (this.player != null)
+		{
+			this.player.OnCameraAngleChange(angle);
+		}
+	}
+
 	public bool RequestKill()
 	{
 		if (this.player != null)
@@ -76,6 +84,22 @@ public class GridPuzzleActor : DSTools.MessengerListener
 		}
 	}
 
+	public void MovePath(List<GridPuzzleCube> cubes)
+	{
+		if (this.player != null)
+		{
+			this.player.MovePath(cubes);
+		}
+	}
+
+	public void MovePath(List<GridPuzzleCubeRow> rows)
+	{
+		if (this.player != null)
+		{
+			this.player.MovePath(rows);
+		}
+	}
+
 	public void TeleportTo(GameObject obj)
 	{
 		if (this.player != null)
@@ -99,10 +123,34 @@ public class GridPuzzleActor : DSTools.MessengerListener
 	}
 
 	private GridPuzzleCube targetCube = null;
+	private GridPuzzleCubeRow targetCubeRow = null;
 	public void RequestMoveTo(GridPuzzleCube cube)
 	{
-		PointGraph graph = GridPuzzleManager.Instance.path.astarData.pointGraph;
-		NNInfo nodeInfo = GridPuzzleManager.Instance.path.GetNearest(cube.NavPosition);
+		if (this.targetCube != null)
+		{
+			return;
+		}
+
+		PointGraph graph = AstarPath.active.astarData.pointGraph;
+		NNInfo nodeInfo = AstarPath.active.GetNearest(cube.NavPosition);
+		NNInfo nodeInfoCurrent = AstarPath.active.GetNearest(this.transform.position);
+		if (nodeInfoCurrent.node.ContainsConnection(nodeInfo.node))
+		{
+			//Directly connected, not need to pathfind!
+
+			List<GridPuzzleCube> cubes = new List<GridPuzzleCube>();
+			List<Vector3> vectorPath = new List<Vector3>();
+			cubes.Add(this.player.currentCube); vectorPath.Add(this.player.currentCube.NavPosition);
+			cubes.Add(cube); vectorPath.Add(cube.NavPosition);
+
+			GridPuzzleManager.Instance.SpawnPathFollower(vectorPath, 10f, 3f);
+
+			GridPuzzleMoveTo action = new GridPuzzleMoveTo();
+			action.Init(cubes);
+			this.RequestAction(action);
+
+			return;
+		}
 
 		//ABPath path = this.seeker.GetNewPath(this.player.transform.position, cube.NavPosition);
 		//float patheLength = path.GetTotalLength();
@@ -126,6 +174,8 @@ public class GridPuzzleActor : DSTools.MessengerListener
 		Debug.Log("OnPathComplete length=" + p.GetTotalLength() + " graphMask=" + p.nnConstraint.graphMask);
 		p.Claim(this);
 
+		Debug.Log("OnPathComplete current=" + this.transform.position.ToString() + " p0=" + p.vectorPath[0].ToString() + " p1=" + ((p.vectorPath.Count > 1) ? p.vectorPath[1].ToString() : "none") );
+
 		GridPuzzle puzzle = GridPuzzleManager.Instance.GetCurrentPuzzle();
 
 		GridPuzzleManager.Instance.SpawnPathFollower(p.vectorPath, 10f, 3f);
@@ -133,19 +183,11 @@ public class GridPuzzleActor : DSTools.MessengerListener
 		//This is likely super slow...need to just make a lookup table I think....
 		List<GridPuzzleCube> cubes = puzzle.GetCubesByNavPoints(p.vectorPath);
 
-		GridPuzzleCube lastCube = this.player.currentCube;
-		for (int i=0; i<cubes.Count; i++)
-		{	
-			GridPuzzleCube cube = cubes[i];
+		GridPuzzleMoveTo action = new GridPuzzleMoveTo();
+		action.Init(cubes);
+		this.RequestAction(action);
 
-			Vector3 pos = cube.NavPosition;
-			//Debug.Log("OnPathComplete name=" + cube.name + " pos=" + pos.x + "," + pos.y + "," + pos.z);
-
-			GridPuzzleMoveTo action = new GridPuzzleMoveTo();
-			action.Init(lastCube, cube);
-			this.RequestAction(action);
-			lastCube = cube;
-		}
+		targetCube = null;
 	}
 
 	public void MoveTo(GridPuzzleCubeRow row)
@@ -166,8 +208,14 @@ public class GridPuzzleActor : DSTools.MessengerListener
 
 	public void RequestMoveTo(GridPuzzleCubeRow row)
 	{
+		if (this.targetCubeRow != null)
+		{
+			return;
+		}
+
 		int graphMask = this.GetGraphMask(GridPuzzleManager.Instance.cameraAngle);
 		seeker.StartPath(transform.position, row.NavPosition, OnRowPathComplete, graphMask);
+		this.targetCubeRow = row;
 	}
 
 	public void OnRowPathComplete (Path p) 
@@ -182,30 +230,41 @@ public class GridPuzzleActor : DSTools.MessengerListener
 		//This is likely super slow...need to just make a lookup table I think....
 		List<GridPuzzleCubeRow> rows = puzzle.GetCubeRowsByNavPoints(p.vectorPath);
 
-		GridPuzzleCubeRow lastCubeRow = null;
+		List<GridPuzzleCubeRow> currentMove = new List<GridPuzzleCubeRow>();
 		for (int i=0; i<rows.Count; i++)
-		{	
-			GridPuzzleCubeRow row = rows[i];
+		{
+			GridPuzzleCubeRow thisRow = rows[i];
+			GridPuzzleCubeRow lastRow = (i != 0) ? rows[i-1] : this.player.currentCubeRow;
 
-			Vector3 pos = row.NavPosition;
-			//Debug.Log("OnPathComplete name=" + row.name + " row=" + pos.x + "," + pos.y + "," + pos.z);
+			float verticalDelta = (lastRow == null) ? 0 : Mathf.Abs((thisRow.NavPosition.y - lastRow.NavPosition.y));
+			if (verticalDelta > 0.5f)
+			{
+				if (currentMove.Count > 1)
+				{
+					GridPuzzleMoveToRow moveAction = new GridPuzzleMoveToRow();
+					moveAction.Init(currentMove);
+					this.RequestAction(moveAction);
+					currentMove = new List<GridPuzzleCubeRow>();
+				}
 
-			float lastY = (lastCubeRow != null) ? lastCubeRow.NavPosition.y : this.transform.position.y;
-			if (Mathf.Abs(pos.y - lastY) > 0.2f)
-			{
-				Debug.LogError("GridPuzzleJumpToRow action dy=" + Mathf.Abs(pos.y - lastY));
-				GridPuzzleJumpToRow action = new GridPuzzleJumpToRow();
-				action.Init(lastCubeRow, row);
-				this.RequestAction(action);
+				GridPuzzleJumpToRow jumpAction = new GridPuzzleJumpToRow();
+				jumpAction.Init(lastRow, thisRow);
+				this.RequestAction(jumpAction);
 			}
-			else 
-			{
-				GridPuzzleMoveToRow action = new GridPuzzleMoveToRow();
-				action.Init(lastCubeRow, row);
-				this.RequestAction(action);
-			}
-			lastCubeRow = row;
+
+			currentMove.Add(thisRow);
 		}
+
+		if (currentMove.Count > 1)
+		{
+			GridPuzzleMoveToRow moveAction = new GridPuzzleMoveToRow();
+			moveAction.Init(currentMove);
+			this.RequestAction(moveAction);
+			currentMove.Clear();
+		}
+
+
+		this.targetCubeRow = null;
 	}
 
 	public void Stop()

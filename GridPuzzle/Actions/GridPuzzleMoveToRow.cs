@@ -24,7 +24,7 @@ public class GridPuzzleMoveToRow : GridPuzzleAction
 	{
 		if (this.actor != null)
 		{
-			this.actor.MoveTo(this.endRow);
+			this.actor.MovePath(this.cubeRowPath);
 		}
 	}
 
