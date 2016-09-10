@@ -264,7 +264,7 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 					Stop();
 				}
 			}
-			isStateReady = true;
+
 			if (isStateReady && (this.currentPath != null))
 			{
 				if(!this.moverStarted)
@@ -293,6 +293,10 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 				}
 			}
 		}
+
+		Vector3 angles = this.transform.eulerAngles;
+		angles.x = 0;
+		this.transform.rotation = Quaternion.Euler(angles);
 
 		this.timeInState += Time.deltaTime;
 	}
@@ -381,6 +385,31 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		this.movePath.targetRow = row;
 		this.movePath.jumpUp = jumpUp;
 		this.SetState(State.Jump);
+
+		//Debug.LogError("MovePath cubes=" + cubes.Count);
+//		List<Vector3> points = new List<Vector3>();
+//		for (int i=0; i<cubes.Count; i++)
+//		{
+//			points.Add( cubes[i].NavPosition );
+//		}
+//
+//		GameObject obj = new GameObject();
+//		obj.name = "PlayerCubePath";
+//
+//		this.currentPath = obj.AddComponent<SWS.PathManager>();
+//		this.currentPath.waypoints = new Transform[cubes.Count];
+//		for (int i=0; i<cubes.Count; i++)
+//		{
+//			GameObject cubeObj = new GameObject("PlayerCubeNode");
+//			cubeObj.transform.position = cubes[i].NavPosition;
+//			//cubeObj.transform.rotation =;
+//			cubeObj.transform.SetParent(obj.transform);
+//			this.currentPath.waypoints[i] = cubeObj.transform;
+//		}
+//
+//		this.moverStarted = false;
+//
+//		this.SetState(State.Run);
 	}
 
 	public void MoveTo(GridPuzzleCube cube)
@@ -428,12 +457,6 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 
 		this.currentPath = obj.AddComponent<SWS.PathManager>();
 		this.currentPath.waypoints = new Transform[rows.Count];
-
-		//Current Pos
-		//GameObject cubeObj = new GameObject("PlayerRowStartNode");
-		//cubeObj.transform.position = this.transform.position;
-		//cubeObj.transform.rotation = this.transform.rotation;
-		//this.currentPath.waypoints[0] = cubeObj.transform;
 
 		//The rest of the path
 		for (int i=0; i<rows.Count; i++)
