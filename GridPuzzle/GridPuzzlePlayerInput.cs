@@ -202,22 +202,6 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 			GridPuzzleGameplayAction action = (GridPuzzleGameplayAction)obj1;
 			GameObject obj = obj2 as GameObject;
 			Debug.Log("GridPuzzlePlayerInput.OnMessage id=" + id + " action=" + action.ToString() + " name=" + obj.name);
-			if (action == GridPuzzleGameplayAction.MoveToCube)
-			{
-				cube = obj.GetComponent<GridPuzzleCube>();
-				if (this.player != null)
-				{
-					player.MoveTo(cube);
-				}
-			}
-			else if (action == GridPuzzleGameplayAction.MoveToCubeRow)
-			{
-				GridPuzzleCubeRow cubeRow = obj.GetComponent<GridPuzzleCubeRow>();
-				if (this.player != null)
-				{
-					player.MoveTo(cubeRow);
-				}
-			}
 			break;
 
 		case "PlayerSpawned":

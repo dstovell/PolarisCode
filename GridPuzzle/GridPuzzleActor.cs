@@ -85,19 +85,12 @@ public class GridPuzzleActor : DSTools.MessengerListener
 		}
 	}
 
-	public void MoveTo(GridPuzzleCube cube)
-	{
-		if (this.player != null)
-		{
-			this.player.MoveTo(cube);
-		}
-	}
-
 	public void MovePath(List<GridPuzzleCube> cubes)
 	{
 		if (this.player != null)
 		{
-			this.player.MovePath(cubes);
+			GridPuzzlePlayerController.State state = (cubes.Count <= 4) ? GridPuzzlePlayerController.State.Walk : GridPuzzlePlayerController.State.Jog;
+			this.player.MovePath(cubes, state);
 		}
 	}
 
@@ -105,7 +98,8 @@ public class GridPuzzleActor : DSTools.MessengerListener
 	{
 		if (this.player != null)
 		{
-			this.player.MovePath(rows);
+			GridPuzzlePlayerController.State state = (rows.Count <= 4) ? GridPuzzlePlayerController.State.Walk : GridPuzzlePlayerController.State.Jog;
+			this.player.MovePath(rows, state);
 		}
 	}
 
@@ -136,6 +130,11 @@ public class GridPuzzleActor : DSTools.MessengerListener
 	public void RequestMoveTo(GridPuzzleCube cube)
 	{
 		if (this.targetCube != null)
+		{
+			return;
+		}
+
+		if (this.IsMoving())
 		{
 			return;
 		}
@@ -199,14 +198,6 @@ public class GridPuzzleActor : DSTools.MessengerListener
 		targetCube = null;
 	}
 
-	public void MoveTo(GridPuzzleCubeRow row)
-	{
-		if (this.player != null)
-		{
-			this.player.MoveTo(row);
-		}
-	}
-
 	public void JumpTo(GridPuzzleCubeRow row)
 	{
 		if (this.player != null)
@@ -218,6 +209,11 @@ public class GridPuzzleActor : DSTools.MessengerListener
 	public void RequestMoveTo(GridPuzzleCubeRow row)
 	{
 		if (this.targetCubeRow != null)
+		{
+			return;
+		}
+
+		if (this.IsMoving())
 		{
 			return;
 		}

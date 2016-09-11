@@ -129,6 +129,8 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 	public enum State
 	{
 		Idle,
+		Walk,
+		Jog,
 		Run,
 		Jump
 	};
@@ -154,7 +156,7 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 
 	private Rigidbody rb;
 
-	private Animator anim;
+	public Animator anim;
 
 	private GridPuzzlePlayerPath movePath;
 
@@ -174,10 +176,69 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		this.InitMessenger("GridPuzzlePlayerController");
 		this.currentState = State.Idle;
 		this.currentSurface = Surface.Floor;
-		this.anim = this.gameObject.GetComponent<Animator>();
 		this.rb = this.gameObject.GetComponent<Rigidbody>();
 		this.mover = this.gameObject.GetComponent<SWS.splineMove>();
 		this.pathManager = this.gameObject.GetComponent<SWS.PathManager>();
+
+		if (this.anim == null)
+		{
+			this.anim = this.gameObject.GetComponentInChildren<Animator>();
+		}
+	}
+
+	public bool IsPlayingAnimType(string type)
+	{
+		if (type == "Jog")
+		{
+			return this.IsPlaying("Jog_Fwd_Start") || this.IsPlaying("Jog_Fwd") || this.IsPlaying("Jog_Fwd_Stop");
+		}
+		else if (type == "Run")
+		{
+			return this.IsPlaying("Run_Fwd_Start") || this.IsPlaying("Run_Fwd") || this.IsPlaying("Run_Fwd_Stop");
+		}
+		else if (type == "Walk")
+		{
+			return this.IsPlaying("Walk_Fwd_Start") || this.IsPlaying("Walk_Fwd") || this.IsPlaying("Walk_Fwd_Stop");
+		}
+
+		return false;
+	}
+
+	public bool IsPlayingMovingAnim()
+	{
+		return this.IsPlayingAnimType("Walk") || this.IsPlayingAnimType("Jog") || this.IsPlayingAnimType("Run");
+	}
+
+	public void SetAnimBool(string name, bool enabled)
+	{
+		Debug.Log(name + " enabled=" + enabled);
+		this.anim.SetBool(name, enabled);
+	}
+
+	public void SetAnimTrigger(string name)
+	{
+		Debug.Log(name + " triggered");
+		this.anim.SetTrigger(name);
+	}
+
+	public void SetMoveType(string type = "")
+	{
+		if (this.anim.GetBool(type))
+		{
+			return;
+		}
+
+		string [] states = new string[]{"Idle", "Walk", "Jog", "Run"};
+
+		this.SetAnimBool(type, true);
+
+		for (int i=0; i<states.Length; i++)
+		{
+			if (states[i] != type)
+			{
+				this.SetAnimBool(states[i], false);
+			}
+		}
 	}
 
 	public void SetState(State newState)
@@ -191,14 +252,25 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		switch(newState)
 		{
 		case State.Idle:
+			this.SetMoveType("Idle");
+			break;
+		case State.Walk:
+			this.SetMoveType("Walk");
+			this.mover.easeType = DG.Tweening.Ease.Linear;
+			this.MoveSpeed = 2f;
+			break;
+		case State.Jog:
+			this.SetMoveType("Jog");
+			this.mover.easeType = DG.Tweening.Ease.InOutSine;
+			this.MoveSpeed = 5f;
 			break;
 		case State.Run:
-			this.anim.SetBool("Jump", false);
-			this.anim.SetBool("Run", true);
+			this.SetMoveType("Run");
 			this.mover.easeType = DG.Tweening.Ease.InOutSine;
+			this.MoveSpeed = 5f;
 			break;
 		case State.Jump:
-			this.anim.SetBool("Run", true);
+			this.SetAnimTrigger("Jump");
 			this.mover.easeType = DG.Tweening.Ease.OutSine;
 			break;
 		default:
@@ -215,26 +287,14 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		switch(this.currentState)
 		{
 		case State.Idle:
-			if (this.anim.GetBool("Run") && !GridPuzzleActionManager.Instance.PlayerHasActions())
-			{
-				this.anim.SetBool("Run", false);
-			}
+			break;
+		case State.Walk:
+			break;
+		case State.Jog:
 			break;
 		case State.Run:
 			break;
 		case State.Jump:
-			if (this.timeInState > 0.5f)
-			{
-				this.anim.SetBool("Jump", false);
-			}
-			else if (!this.anim.GetBool("Jump"))
-			{
-				this.anim.SetBool("Jump", true);
-			}
-			else if (this.anim.GetBool("Run"))
-			{
-				this.anim.SetBool("Run", false);
-			}
 			break;
 		default:
 			break;
@@ -256,7 +316,8 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 
 		if (this.IsMoving() || this.IsJumping())
 		{
-			bool isStateReady = this.IsJumping() ? (this.timeInState > 1.0f) : this.IsPlaying("Run");
+			 
+			bool isStateReady = this.IsJumping() ? true : this.IsPlayingMovingAnim();
 
 			if (isStateReady && (this.movePath != null))
 			{
@@ -281,6 +342,9 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 				}
 			}
 
+
+
+
 			if (isStateReady && (this.currentPath != null))
 			{
 				if(!this.moverStarted)
@@ -293,6 +357,7 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 				{
 					//Debug.Log("currentPoint=" + this.mover.currentPoint + " / " + this.mover.waypoints.Length );
 					bool atFinalNode = (this.mover.currentPoint == (this.mover.waypoints.Length-1));
+					bool atSecondLastNode = (this.mover.currentPoint == (this.mover.waypoints.Length-2));
 					if (atFinalNode)
 					{
 						if (this.angle != GridPuzzleCamera.Angle.Isometric)
@@ -310,6 +375,10 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 						}
 
 						this.Stop();
+					}
+					else if (atSecondLastNode && (this.timeInState > 0.4f))//(this.mover.waypoints.Length > 2))
+					{
+						this.SetMoveType("Idle");
 					}
 				}
 			}
@@ -386,7 +455,7 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 
 	public bool IsMoving()
 	{
-		return (this.currentState == State.Run);
+		return ((this.currentState == State.Run) || (this.currentState == State.Walk) || (this.currentState == State.Jog));
 	}
 
 	public bool IsJumping()
@@ -397,21 +466,6 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 	public bool IsPlaying(string animName)
 	{
 		return this.anim.GetCurrentAnimatorStateInfo(0).IsName(animName);
-	}
-
-	public void MoveTo(GridPuzzleCubeRow row)
-	{
-		Vector3 pos = this.gameObject.transform.position;
-		Vector3 dest = row.NavPosition;
-		dest.z = pos.z;
-
-		List<Vector3> points = new List<Vector3>();
-		points.Add(pos);
-		points.Add(dest);
-
-		this.movePath = new GridPuzzlePlayerPath(points);
-		this.movePath.targetRow = row;
-		this.SetState(State.Run);
 	}
 
 	public void JumpTo(GridPuzzleCubeRow row)
@@ -502,22 +556,6 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		this.currentCubeRow = rows[rows.Count-1];
 	}
 
-	public void MoveTo(GridPuzzleCube cube)
-	{
-		//Debug.LogError("MoveTo pos=" + cube.NavPosition.x + "," + cube.NavPosition.y + "," + cube.NavPosition.z);
-		Vector3 pos = this.gameObject.transform.position;
-		Vector3 dest = cube.NavPosition;
-		//dest.y = pos.y;
-
-		List<Vector3> points = new List<Vector3>();
-		points.Add(pos);
-		points.Add(dest);
-
-		this.movePath = new GridPuzzlePlayerPath(points);
-		this.movePath.targetCube = cube;
-		this.SetState(State.Run);
-	}
-
 	public void JumpTo(GridPuzzleCube cube)
 	{
 		Vector3 pos = this.gameObject.transform.position;
@@ -533,7 +571,7 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		this.SetState(State.Jump);
 	}
 
-	public void MovePath(List<GridPuzzleCubeRow> rows)
+	public void MovePath(List<GridPuzzleCubeRow> rows, State s = State.Jog)
 	{
 		if (this.currentPath != null)
 		{
@@ -562,10 +600,10 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 
 		this.moverStarted = false;
 
-		this.SetState(State.Run);
+		this.SetState(s);
 	}
 
-	public void MovePath(List<GridPuzzleCube> cubes)
+	public void MovePath(List<GridPuzzleCube> cubes, State s = State.Jog)
 	{
 		if (this.currentPath != null)
 		{
@@ -595,7 +633,7 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 
 		this.moverStarted = false;
 
-		this.SetState(State.Run);
+		this.SetState(s);
 	}
 
 	public void TeleportTo(GameObject location)
