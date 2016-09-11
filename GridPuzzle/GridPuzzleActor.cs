@@ -89,8 +89,7 @@ public class GridPuzzleActor : DSTools.MessengerListener
 	{
 		if (this.player != null)
 		{
-			GridPuzzlePlayerController.State state = (cubes.Count <= 4) ? GridPuzzlePlayerController.State.Walk : GridPuzzlePlayerController.State.Jog;
-			this.player.MovePath(cubes, state);
+			this.player.MovePath(cubes, GridPuzzlePlayerController.State.Jog);
 		}
 	}
 
@@ -98,8 +97,7 @@ public class GridPuzzleActor : DSTools.MessengerListener
 	{
 		if (this.player != null)
 		{
-			GridPuzzlePlayerController.State state = (rows.Count <= 4) ? GridPuzzlePlayerController.State.Walk : GridPuzzlePlayerController.State.Jog;
-			this.player.MovePath(rows, state);
+			this.player.MovePath(rows, GridPuzzlePlayerController.State.Jog);
 		}
 	}
 

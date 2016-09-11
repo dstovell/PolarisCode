@@ -230,6 +230,8 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 
 		string [] states = new string[]{"Idle", "Walk", "Jog", "Run"};
 
+		this.anim.CrossFade(type, 0.5f);
+
 		this.SetAnimBool(type, true);
 
 		for (int i=0; i<states.Length; i++)
@@ -357,7 +359,6 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 				{
 					//Debug.Log("currentPoint=" + this.mover.currentPoint + " / " + this.mover.waypoints.Length );
 					bool atFinalNode = (this.mover.currentPoint == (this.mover.waypoints.Length-1));
-					bool atSecondLastNode = (this.mover.currentPoint == (this.mover.waypoints.Length-2));
 					if (atFinalNode)
 					{
 						if (this.angle != GridPuzzleCamera.Angle.Isometric)
@@ -375,10 +376,6 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 						}
 
 						this.Stop();
-					}
-					else if (atSecondLastNode && (this.timeInState > 0.4f))//(this.mover.waypoints.Length > 2))
-					{
-						this.SetMoveType("Idle");
 					}
 				}
 			}
