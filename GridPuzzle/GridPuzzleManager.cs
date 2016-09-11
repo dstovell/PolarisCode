@@ -96,14 +96,14 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		{
 			Transform currentSpawn = current.GetSpawn();
 			this.spawnPortal = currentSpawn.gameObject.GetComponent<GridPuzzlePortal>();
-			this.player = this.LoadActor(this.playerPrefab, currentSpawn);
+			this.player = this.LoadActor(this.playerPrefab, current, currentSpawn);
 			this.player.TeleportTo(currentSpawn.gameObject);
 
 			this.SendMessengerMsg("PlayerSpawned", this.player);
 		}
 	}
 
-	public GridPuzzleActor LoadActor(GameObject prefab, Transform spawn)
+	public GridPuzzleActor LoadActor(GameObject prefab, GridPuzzle current, Transform spawn)
 	{
 		//Debug.Log("LoadActor " + prefab.name + " pos=" + spawn.position.x + "," + spawn.position.y + "," + spawn.position.z);
 		GameObject instance = GameObject.Instantiate(prefab, spawn.position, spawn.rotation) as GameObject;
@@ -112,6 +112,12 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		{
 			GameObject.Destroy(instance);
 			return null;
+		}
+
+		GridPuzzlePlayerController player = instance.GetComponent<GridPuzzlePlayerController>();
+		if (player != null)
+		{
+			player.parentPuzzle = current;
 		}
 
 		this.loadedActors.Add(actor);
@@ -354,6 +360,7 @@ public class GridPuzzleManager : DSTools.MessengerListener
 				if (puzzle.GetPosition() != PuzzlePosition.Current)
 				{
 					this.ChangePuzzle(puzzle.GetPosition());
+					this.SendMessengerMsg("OnUpdatedPuzzlePositions");
 				}
 			}
 			break;

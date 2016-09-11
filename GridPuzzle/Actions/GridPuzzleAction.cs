@@ -45,23 +45,27 @@ public class GridPuzzleAction
 		InitAction();
 	}
 
-	public void Init(List<GridPuzzleCube> path, int turns = -1)
+	public void Init(List<GridPuzzleCube> path, int turns = 0)
 	{
 		//Debug.LogError("Init cube path=" + path.Count + " p0=" + path[0].NavPosition.ToString() + " p1=" + path[1].NavPosition.ToString());
 		this.cubePath = path;
-		this.turnCount = turns;
-		this.remainingTurnCount = (turns >= 0) ? turns : path.Count;
+
+		this.turnCount = (turns > 0) ? turns : (path.Count - 1);
+		this.turnCount = Mathf.Max(this.turnCount, 1);
+		this.remainingTurnCount = this.turnCount;
 
 		this.state = State.Pending;
 		InitAction();
 	}
 
-	public void Init(List<GridPuzzleCubeRow> path, int turns = -1)
+	public void Init(List<GridPuzzleCubeRow> path, int turns = 0)
 	{
 		//Debug.LogError("Init row path=" + path.Count);
 		this.cubeRowPath = new List<GridPuzzleCubeRow>(path);
-		this.turnCount = turns;
-		this.remainingTurnCount = (turns >= 0) ? turns : path.Count;
+
+		this.turnCount = (turns > 0) ? turns : (path.Count - 1);
+		this.turnCount = Mathf.Max(this.turnCount, 1);
+		this.remainingTurnCount = this.turnCount;
 
 		this.state = State.Pending;
 		InitAction();

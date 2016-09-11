@@ -42,15 +42,26 @@ public class GridPuzzleCubeRow : GridPuzzleNavigable
 		{
 			this.InitMessenger("GridPuzzleCubeRow");
 		}
+		CreateSafeZone();
 		this.OnCameraAngleChange(this.angle);
 
 		this.parentPuzzle = this.gameObject.GetComponentInParent<GridPuzzle>();
+
 	}
 
 	public void UpdateCollider()
 	{		
 		if (this.box != null)
 		{
+			if (this.safeZone != null)
+			{
+				this.box.isTrigger = this.safeZone.IsAnySafe();
+			}
+			else
+			{
+				this.box.isTrigger = false;
+			}
+
 			bool enabledForAngle = (this.angle != GridPuzzleCamera.Angle.Isometric);
 			bool enabled = this.IsColliderRow && enabledForAngle;
 			if (this.box.enabled != enabled)
@@ -63,37 +74,6 @@ public class GridPuzzleCubeRow : GridPuzzleNavigable
 	void Update ()
 	{
 		UpdateCollider();
-
-		/*if (GridPuzzleEditor.IsActive() && (this.angle == GridPuzzleCamera.Angle.Side2D))
-		{
-			if (this.button == null)
-			{
-				this.button = this.gameObject.AddComponent<GridPuzzleVectorUIItem>();
-				this.button.editorAction = GridPuzzleEditorAction.AddCubes;
-				this.button.text = "+";
-				this.button.size = 0.1f;
-			}
-
-			this.button.position = Camera.main.WorldToViewportPoint(this.transform.position);
-		}
-		else if ((this.angle == GridPuzzleCamera.Angle.Side2D) && this.isTopRow)
-		{
-			if (this.button == null)
-			{
-				this.button = this.gameObject.AddComponent<GridPuzzleVectorUIItem>();
-				this.button.gameplayAction = GridPuzzleGameplayAction.MoveToCubeRow;
-				this.button.text = "*";
-				this.button.size = 0.05f;
-			}
-
-			this.button.position = Camera.main.WorldToViewportPoint(this.transform.position);
-		}
-		else if (this.button != null)
-		{
-			this.button.CloseAndDestroy();
-			GameObject.DestroyObject(this.button);
-			this.button = null;
-		}*/
 	}
 
 	public void Destroy()
@@ -120,6 +100,63 @@ public class GridPuzzleCubeRow : GridPuzzleNavigable
 			this.NavPoint.transform.SetParent(this.transform);
 			this.NavPoint.tag = "NavPoint_Side2D";
 		}
+	}
+
+	public GridPuzzleSafeZone safeZone;
+	public void CreateSafeZone()
+	{
+		if (this.safeZone != null)
+		{
+			return;
+		}
+
+		int cubeCount = 0;
+		for (int j=0; j<this.cubes.Length; j++)
+		{
+			if (this.cubes[j] != null)
+			{
+				break;
+			}
+			cubeCount++;
+		}
+
+		if (cubeCount == 0)
+		{
+			return;
+		}
+
+		float cubeSize = 1f;
+		float safeZoneLength = cubeCount*cubeSize;
+		float remainingLength = this.cubes.Length*cubeSize - safeZoneLength;
+		Vector3 rowPos = this.transform.position;
+		Vector3 pos = new Vector3(rowPos.x, rowPos.y, rowPos.z - (0.5f*remainingLength));
+		Vector3 size = new Vector3(cubeSize, cubeSize, safeZoneLength);
+
+		GameObject obj = new GameObject("RowSafeZone");
+		obj.transform.position = pos;
+		this.safeZone = obj.AddComponent<GridPuzzleSafeZone>();
+		this.safeZone.AddBox(size);
+		obj.transform.SetParent(this.transform);
+	}
+
+	public bool IsInSafeZone(Collider other)
+	{
+		if (this.safeZone == null)
+		{
+			return false;
+		}
+
+		return this.safeZone.IsInSafeZone(other);
+	}
+
+	public void MakeSafe(Collider other)
+	{
+		if (this.safeZone == null)
+		{
+			return;
+		}
+
+		this.safeZone.MakeSafe(other);
 	}
 
 	public GridPuzzleCube GetFrontCube()
@@ -245,15 +282,17 @@ public class GridPuzzleCubeRow : GridPuzzleNavigable
 		this.angle = _angle;
 		if (this.angle == GridPuzzleCamera.Angle.Side2D)
 		{
-			if ((this.cubes != null) && (this.cubes.Length > 0))
+			if (this.safeZone != null)
 			{
-				this.box.enabled = true;
-				this.box.isTrigger = false;
+				//this.safeZone.box.enabled = true;
 			}
 		}
 		else if (this.angle == GridPuzzleCamera.Angle.Isometric)
 		{
-			this.box.enabled = false;
+			if (this.safeZone != null)
+			{
+				//this.safeZone.box.enabled = false;
+			}
 		}
 
 		if ((this.cubes != null) && (this.cubes.Length > 0))

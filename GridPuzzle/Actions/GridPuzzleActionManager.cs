@@ -25,6 +25,7 @@ public class GridPuzzleActionQueue
 		if ((action != null) && (action.state == GridPuzzleAction.State.Pending))
 		{
 			action.Start();
+			DSTools.Messenger.SendMessageFrom("GridPuzzleActionQueue", "ActorTurn", this.actor, action.turnCount);
 		}
 		return action;
 	}
@@ -74,6 +75,8 @@ public class GridPuzzleActionQueue
 	}
 
 	private List<GridPuzzleAction> actions = new List<GridPuzzleAction>();
+
+	public GridPuzzleActor actor;
 }
 
 public class GridPuzzleActionManager : DSTools.MessengerListener
@@ -111,6 +114,7 @@ public class GridPuzzleActionManager : DSTools.MessengerListener
 		if (!this.queues.ContainsKey(actor))
 		{
 			this.queues[actor] = new GridPuzzleActionQueue();
+			this.queues[actor].actor = actor;
 			if (actor.IsPlayer)
 			{
 				this.player = actor;

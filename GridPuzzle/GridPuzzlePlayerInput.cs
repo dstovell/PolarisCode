@@ -108,24 +108,24 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 				{
 					//Right
 					//Debug.LogError("Right");
-					DSTools.Messenger.SendMessageFrom("GridPuzzleUIAction", "GridPuzzleUIAction", GridPuzzleUIAction.Type.Camera_Isometric);
+					//DSTools.Messenger.SendMessageFrom("GridPuzzleUIAction", "GridPuzzleUIAction", GridPuzzleUIAction.Type.Camera_Isometric);
 				}
 				else
 				{
 					//Left
 					//Debug.LogError("Left");
-					DSTools.Messenger.SendMessageFrom("GridPuzzleUIAction", "GridPuzzleUIAction", GridPuzzleUIAction.Type.Camera_Side2D);
+					//DSTools.Messenger.SendMessageFrom("GridPuzzleUIAction", "GridPuzzleUIAction", GridPuzzleUIAction.Type.Camera_Side2D);
 				}
 			}
 			else
 			{
 				if (gesture.ScreenFlickVector.y > 0)
 				{
-					//Up
+					this.actor.RequestJumpUp();
 				}
 				else
 				{
-					//Down
+					this.actor.RequestJumpDown();
 				}
 			}
 		}
@@ -178,9 +178,12 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 		if (gesture != null)
 		{
 			Vector2 dragDelta = (gesture.NormalizedScreenPosition - gesture.PreviousNormalizedScreenPosition);
-			float amount = dragDelta.x;
-			//Debug.LogError("TransformedHandler amount=" + amount);
-			this.cam.OnManualInput(amount);
+			if (Mathf.Abs(dragDelta.x) >= Mathf.Abs(dragDelta.y))
+			{
+				float amount = dragDelta.x;
+				//Debug.LogError("TransformedHandler amount=" + amount);
+				this.cam.OnManualInput(amount);
+			}
 		}
 	}
 

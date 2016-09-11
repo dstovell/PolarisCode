@@ -57,6 +57,7 @@ public class GridPuzzleActor : DSTools.MessengerListener
 		if (this.player != null)
 		{
 			this.player.Respawn();
+			this.SendMessengerMsg("ActorKilled", this);
 			return true;
 		}
 		return false;
@@ -74,6 +75,14 @@ public class GridPuzzleActor : DSTools.MessengerListener
 			return this.player.IsMoving() || this.player.IsJumping();
 		}
 		return false;
+	}
+
+	public void ChangeVertical(List<GridPuzzleCubeRow> rows)
+	{
+		if (this.player != null)
+		{
+			this.player.ChangeVertical(rows);
+		}
 	}
 
 	public void MoveTo(GridPuzzleCube cube)
@@ -265,6 +274,50 @@ public class GridPuzzleActor : DSTools.MessengerListener
 
 
 		this.targetCubeRow = null;
+	}
+
+	public void RequestJumpUp()
+	{
+		if (this.player == null)
+		{
+			return;
+		}
+
+		Debug.LogError("RequestJumpUp");
+		if (this.IsActing())
+		{
+			Debug.LogError("   IsActing=" + this.IsActing());
+			return;
+		}
+
+		GridPuzzleCubeRow current = this.player.currentCubeRow;
+		if ((current == null) || (this.player.parentPuzzle == null))
+		{
+			Debug.LogError("   current=" + current + " puzzle=" + this.player.parentPuzzle);
+			return;
+		}
+
+		GridPuzzleCubeRow oneUp = this.player.parentPuzzle.GetRow(current.x, current.y+1);
+		if ((oneUp == null) || !oneUp.IsColliderRow)
+		{
+			Debug.LogError("   oneUp=" + oneUp);
+			return;
+		}
+
+		List<GridPuzzleCubeRow> rows = new List<GridPuzzleCubeRow>();
+		rows.Add(current);
+		rows.Add(oneUp);
+		GridPuzzleChangeVertical jumpUpAction = new GridPuzzleChangeVertical();
+		jumpUpAction.Init(rows);
+		this.RequestAction(jumpUpAction);
+	}
+
+	public void RequestJumpDown()
+	{
+		if (this.IsActing())
+		{
+			return;
+		}
 	}
 
 	public void Stop()

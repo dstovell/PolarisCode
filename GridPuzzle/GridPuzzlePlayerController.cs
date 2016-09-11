@@ -145,6 +145,13 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 	public GridPuzzleCube currentCube = null;
 	public GridPuzzleCubeRow currentCubeRow = null;
 
+	public Transform [] Visors;
+	[Range(0.0f, 1.0f)]
+	public float VisorOpenT = 0f;
+	Vector3 VisorOpenAngle = new Vector3(-90, 0, 0);
+
+	public bool Helmet = true;
+
 	private Rigidbody rb;
 
 	private Animator anim;
@@ -188,9 +195,11 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		case State.Run:
 			this.anim.SetBool("Jump", false);
 			this.anim.SetBool("Run", true);
+			this.mover.easeType = DG.Tweening.Ease.InOutSine;
 			break;
 		case State.Jump:
-			this.anim.SetBool("Jump", true);
+			this.anim.SetBool("Run", true);
+			this.mover.easeType = DG.Tweening.Ease.OutSine;
 			break;
 		default:
 			break;
@@ -218,7 +227,14 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 			{
 				this.anim.SetBool("Jump", false);
 			}
-			this.anim.SetBool("Run", false);
+			else if (!this.anim.GetBool("Jump"))
+			{
+				this.anim.SetBool("Jump", true);
+			}
+			else if (this.anim.GetBool("Run"))
+			{
+				this.anim.SetBool("Run", false);
+			}
 			break;
 		default:
 			break;
@@ -284,7 +300,12 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 							GridPuzzleCube closestCube = (this.currentCubeRow != null) ? this.currentCubeRow.GetClosestCube(this.transform.position) : null;
 							if (closestCube != null)
 							{
-								this.transform.position = closestCube.NavPosition;
+								Vector3 nav = closestCube.NavPosition;
+								if (this.IsJumping())
+								{
+									nav.y = this.transform.position.y;
+								}
+								this.transform.position = nav;
 							}
 						}
 
@@ -332,6 +353,31 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 			}
 		}
 	}
+
+	void LateUpdate()
+    {
+//        BlinkEyes();
+//
+//
+//        for (int i = 0; i < m_headRenderers.Count; i++)
+//        {
+//            m_headRenderers[i].SetBlendShapeWeight((int)eBS.ANGRY, m_angry * 100f);
+//            m_headRenderers[i].SetBlendShapeWeight((int)eBS.SMILE, m_smile * 100f);
+//        }
+
+        //visor
+		if (this.Visors != null)
+		{
+			for (int i = 0; i < Visors.Length; i++)
+	        {
+				Visors[i].localRotation = Quaternion.Euler(Vector3.Lerp(Vector3.zero, VisorOpenAngle, VisorOpenT));
+				Visors[i].parent.gameObject.SetActive(Helmet);
+	        }
+	    }
+
+        //LookAt
+        //LookAt();
+    }
 
 	public bool IsFacing(Vector3 dir)
 	{
@@ -410,6 +456,50 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 //		this.moverStarted = false;
 //
 //		this.SetState(State.Run);
+	}
+
+	public void ChangeVertical(List<GridPuzzleCubeRow> rows)
+	{
+		if ((rows == null) || (rows.Count < 2))
+		{
+			return;
+		}
+
+		if (this.currentPath != null)
+		{
+			return;
+		}
+
+		Debug.LogError("ChangeVertical rows=" + rows.Count);
+		//bool isJumpUp = (rows[0].NavPosition.y - rows[rows.Count-1].NavPosition.y);
+
+		GameObject obj = new GameObject();
+		obj.name = "PlayerVertRowPath";
+
+		this.currentPath = obj.AddComponent<SWS.PathManager>();
+		this.currentPath.waypoints = new Transform[rows.Count];
+
+		//The rest of the path
+		for (int i=0; i<rows.Count; i++)
+		{
+			GameObject cubeObj = new GameObject("PlayerRowNode");
+
+			Vector3 nav = rows[i].NavPosition;
+			if (i != 0)
+			{
+				nav.y += 0.3f;
+			}
+			cubeObj.transform.position = nav;
+
+			cubeObj.transform.SetParent(obj.transform);
+			this.currentPath.waypoints[i] = cubeObj.transform;
+		}
+
+		this.moverStarted = false;
+
+		this.SetState(State.Jump);
+
+		this.currentCubeRow = rows[rows.Count-1];
 	}
 
 	public void MoveTo(GridPuzzleCube cube)
