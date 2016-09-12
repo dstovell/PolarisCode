@@ -132,7 +132,8 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		Walk,
 		Jog,
 		Run,
-		Jump
+		Jump,
+		Climb
 	};
 	public State currentState;
 	private float timeInState = 0;
@@ -201,6 +202,14 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		else if (type == "Walk")
 		{
 			return this.IsPlaying("Walk_Fwd_Start") || this.IsPlaying("Walk_Fwd") || this.IsPlaying("Walk_Fwd_Stop");
+		}
+		else if (type == "Jump")
+		{
+			return this.IsPlaying("Jump") || this.IsPlaying("Jump_Land");
+		}
+		else if (type == "Climb")
+		{
+			return this.IsPlaying("Mount");
 		}
 
 		return false;
@@ -274,8 +283,15 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 			this.MoveSpeed = 5f;
 			break;
 		case State.Jump:
-			this.SetAnimTrigger("Jump");
+			//this.SetAnimTrigger("Jump");
+			this.SetAnimTrigger("Dismount");
 			this.mover.easeType = DG.Tweening.Ease.OutSine;
+			this.MoveSpeed = 5f;
+			break;
+		case State.Climb:
+			this.SetAnimTrigger("Mount");
+			this.mover.easeType = DG.Tweening.Ease.Linear;
+			this.MoveSpeed = 0.8f;
 			break;
 		default:
 			break;
@@ -301,13 +317,18 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 			break;
 		case State.Jump:
 			break;
+		case State.Climb:
+			break;
 		default:
 			break;
 		}
 
-		if (this.IsMoving() || this.IsJumping())
+		if (this.IsMoving() || this.IsJumping() || this.IsClimbing())
 		{
-			bool isStateReady = this.IsJumping() ? true : this.IsPlayingMovingAnim();
+			
+			bool isStateReady = (	(this.IsMoving() && this.IsPlayingMovingAnim())
+								||	(this.IsJumping() && (this.timeInState > 0.5f))
+								||	(this.IsClimbing() && (this.timeInState > 0.1f))	);
 
 			if (isStateReady && (this.currentPath != null))
 			{
@@ -443,6 +464,11 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 	public bool IsJumping()
 	{
 		return (this.currentState == State.Jump);
+	}
+
+	public bool IsClimbing()
+	{
+		return (this.currentState == State.Climb);
 	}
 
 	public bool IsPlaying(string animName)
@@ -610,6 +636,10 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 			pointsToAdd.Add(p2);
 			pointsToAdd.Add(n2.NavPosition);
 		}
+		else if (tt == Transition.ClimbUp)
+		{
+			pointsToAdd.Add(n2.NavPosition);
+		}
 
 		return pointsToAdd;
 	}
@@ -628,24 +658,63 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 			else
 			{
 				Transition tt = this.GetTransitionType(navs[i-1], navs[i]);
+				bool isClimb = (tt == Transition.ClimbUp);
+				bool isJump = ((tt == Transition.JumpDown) || (tt == Transition.JumpUp));
 				List<Vector3> tp = this.GetTransitionPath(navs[i-1], navs[i]);
-				if (tp.Count > 0)
+				if (i > 1)
 				{
-					if ((tt == Transition.JumpDown) || (tt == Transition.JumpUp))
+					if (isJump)
 					{
 						points[points.Count-1].gameObject.tag = "AT_Jump";
 					}
-
-					for (int j=0; j<tp.Count; j++)
+					else if (isClimb)
 					{
-						GameObject pointObj = new GameObject(tt.ToString());
-						pointObj.transform.position = tp[j];
-						points.Add(pointObj.transform);
+						points[points.Count-1].gameObject.tag = "AT_Mount";
 					}
+				}
+
+				for (int j=0; j<tp.Count; j++)
+				{
+					GameObject pointObj = new GameObject(tt.ToString());
+					pointObj.transform.position = tp[j];
+					points.Add(pointObj.transform);
+				}
+
+				if (isJump || isClimb)
+				{
+					break;
 				}
 			}
 		}
 		return points;
+	}
+
+	public Transition GetTransitionTypeOfPoint(GameObject obj)
+	{
+		Transition tt = Transition.Linear;
+		string name = obj.name;
+		if (name == "Linear")
+		{
+			tt = Transition.Linear;
+		}
+		else if (name == "JumpUp")
+		{
+			tt = Transition.JumpUp;
+		}
+		else if (name == "JumpDown")
+		{
+			tt = Transition.JumpDown;
+		}
+		else if (name == "ClimbUp")
+		{
+			tt = Transition.ClimbUp;
+		}
+		else if (name == "ClimbDown")
+		{
+			tt = Transition.ClimbDown;
+		}
+
+		return tt;
 	}
 
 	public SWS.PathManager GeneratePathManager(string name, List<GridPuzzleNavigable> navs)
@@ -688,6 +757,18 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 
 		this.moverStarted = false;
 
+		GameObject secondNavPoint = this.currentPath.waypoints[1].gameObject;
+		Transition firstTransition = this.GetTransitionTypeOfPoint(secondNavPoint);
+		Debug.LogError("secondNavPoint name=" + secondNavPoint.name + " firstTransition=" + firstTransition.ToString());
+		if ((firstTransition == Transition.ClimbUp) || (firstTransition == Transition.ClimbDown))
+		{
+			s = State.Climb;
+		}
+		else if ((firstTransition == Transition.JumpUp) || (firstTransition == Transition.JumpDown))
+		{
+			s = State.Jump;
+		}
+
 		this.SetState(s);
 	}
 
@@ -698,28 +779,27 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 			return;
 		}
 
-		//Debug.LogError("MovePath cubes=" + cubes.Count);
-		List<Vector3> points = new List<Vector3>();
+		List<GridPuzzleNavigable> navs = new List<GridPuzzleNavigable>();
 		for (int i=0; i<cubes.Count; i++)
 		{
-			points.Add( cubes[i].NavPosition );
+			navs.Add(cubes[i]);
 		}
 
-		GameObject obj = new GameObject();
-		obj.name = "PlayerCubePath";
-
-		this.currentPath = obj.AddComponent<SWS.PathManager>();
-		this.currentPath.waypoints = new Transform[cubes.Count];
-		for (int i=0; i<cubes.Count; i++)
-		{
-			GameObject cubeObj = new GameObject("PlayerCubeNode");
-			cubeObj.transform.position = cubes[i].NavPosition;
-			//cubeObj.transform.rotation =;
-			cubeObj.transform.SetParent(obj.transform);
-			this.currentPath.waypoints[i] = cubeObj.transform;
-		}
+		this.currentPath = this.GeneratePathManager("PlayerCube", navs);
 
 		this.moverStarted = false;
+
+		GameObject secondNavPoint = this.currentPath.waypoints[1].gameObject;
+		Transition firstTransition = this.GetTransitionTypeOfPoint(secondNavPoint);
+		Debug.LogError("secondNavPoint name=" + secondNavPoint.name + " firstTransition=" + firstTransition.ToString());
+		if ((firstTransition == Transition.ClimbUp) || (firstTransition == Transition.ClimbDown))
+		{
+			s = State.Climb;
+		}
+		else if ((firstTransition == Transition.JumpUp) || (firstTransition == Transition.JumpDown))
+		{
+			s = State.Jump;
+		}
 
 		this.SetState(s);
 	}
