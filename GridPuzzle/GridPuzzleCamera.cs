@@ -5,6 +5,7 @@ using System.Collections.Generic;
 public class GridPuzzleCameraSettings
 {
 	public float orthographicSize;
+	public float orthographicSizeMax;
 	public float nearPlane;
 	public float farPlane;
 
@@ -49,6 +50,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 
 		this.settings[Angle.Side2D] = new GridPuzzleCameraSettings();
 		this.settings[Angle.Side2D].orthographicSize = 3.35f;
+		this.settings[Angle.Side2D].orthographicSizeMax = 8.35f;
 		this.settings[Angle.Side2D].cameraPosition = new Vector3(-0.52f, -0.28f, -8f);
 		this.settings[Angle.Side2D].cameraRotation = Quaternion.identity;
 		this.settings[Angle.Side2D].nearPlane = 0.1f;
@@ -57,6 +59,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 
 		this.settings[Angle.Isometric] = new GridPuzzleCameraSettings();
 		this.settings[Angle.Isometric].orthographicSize = 3.8f;
+		this.settings[Angle.Isometric].orthographicSizeMax = 8.8f;
 		this.settings[Angle.Isometric].cameraPosition = new Vector3(-4.84f, 3f, -4.96f);
 		this.settings[Angle.Isometric].cameraRotation = Quaternion.Euler(new Vector3(0f, 45f, 0f));
 		this.settings[Angle.Isometric].nearPlane = 0.1f;
@@ -118,6 +121,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 			float t = this.IsManualCamera() ? Mathf.Abs(this.manualAngleT) : this.updateTime/this.TransitionTimeSeconds;
 
 			UpdateCameraAngle(this.currentAngle, this.desiredAngle, t);
+			UpdateCameraZoom(this.currentAngle, this.desiredAngle, t);
 			UpdateCameraPosition(this.currentAngle, this.desiredAngle, t);
 
 			if (t >= 1.0f)
@@ -151,11 +155,30 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		}
 		else 
 		{
+			if (!this.IsManualCamera())
+			{
+				UpdateCameraZoom(this.currentAngle);
+			}
 			UpdateCameraPosition(this.currentAngle);
 		}
 	}
 
-	public void OnManualInput(float deltaT)
+	public void OnManualZoom(float deltaScale)
+	{
+		if (this.cam != null)
+		{
+			float orthographicSizeCurrent = this.cam.orthographicSize;
+			float orthographicSizeMax = this.settings[this.currentAngle].orthographicSizeMax;
+
+			float orthographicSizeTarget = orthographicSizeCurrent + (orthographicSizeCurrent * (1.0f - deltaScale));
+
+			this.cam.orthographicSize = Mathf.Min(orthographicSizeTarget, orthographicSizeMax);
+
+			this.isUpdatingManually = true;
+		}
+	}
+
+	public void OnManualRotate(float deltaT)
 	{
 		if (this.desiredAngle != this.currentAngle)
 		{
@@ -221,6 +244,28 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 
 			//this.cam.nearClipPlane = Mathf.Lerp(_from.nearPlane, _to.nearPlane, t);
 			//this.cam.farClipPlane = Mathf.Lerp(_from.farPlane, _to.farPlane, t);
+		}
+	}
+
+	public void UpdateCameraZoom(GridPuzzleCamera.Angle fromAngle, GridPuzzleCamera.Angle toAngle = GridPuzzleCamera.Angle.None, float t = 0f)
+	{
+		GridPuzzleCameraSettings _from = this.settings.ContainsKey(fromAngle) ? this.settings[fromAngle] : null;
+		GridPuzzleCameraSettings _to = this.settings.ContainsKey(toAngle) ? this.settings[toAngle] : null;
+		if (_from == null)
+		{
+			return;
+		}
+
+		if (this.cam != null)
+		{
+			if (_to != null)
+			{
+				this.cam.orthographicSize = Mathf.Lerp(_from.orthographicSize, _to.orthographicSize, t);
+			}
+			else if (this.cam.orthographicSize != _from.orthographicSize)
+			{
+				this.cam.orthographicSize = Mathf.MoveTowards(this.cam.orthographicSize, _from.orthographicSize, 5.0f*Time.deltaTime);
+			}
 		}
 	}
 
