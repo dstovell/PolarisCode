@@ -41,6 +41,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 
 	public GridPuzzlePlayerController player;
 	private float playerStartX;
+	private float playerStartY;
 
 	private Dictionary<GridPuzzleCamera.Angle,GridPuzzleCameraSettings> settings;
 
@@ -91,25 +92,30 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		}
 	}
 
+	public Vector3 GetCharacterScreenPos()
+	{
+		if (this.player == null)
+		{
+			return Vector3.zero;
+		}
+		return editor.WorldToViewportPoint(this.player.transform.position);
+	}
+
 	public Ray ScreenPointToRay(Vector2 screenPoint)
 	{
 		return editor.ScreenPointToRay(new Vector3(screenPoint.x, screenPoint.y));
 	}
 
-	void AssignPlayer(GridPuzzlePlayerController _player)
+	private void AssignPlayer(GridPuzzlePlayerController _player)
 	{
 		this.player = _player;
 		this.playerStartX = this.player.transform.position.x;
+		this.playerStartY = this.player.transform.position.y;
 	}
 	
 	// Update is called once per frame
 	void Update()
 	{
-		if (this.player != null)
-		{
-			float playerDeltaX = this.player.transform.position.x - this.playerStartX;
-		}
-
 		if (this.desiredAngle != this.currentAngle) 
 		{
 			if (!this.isUpdating)
@@ -159,7 +165,11 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 			{
 				UpdateCameraZoom(this.currentAngle);
 			}
-			UpdateCameraPosition(this.currentAngle);
+			bool isPlayerMoving = ((this.player != null) && this.player.IsMoving());
+			if (!isPlayerMoving)
+			{
+				UpdateCameraPosition(this.currentAngle);
+			}
 		}
 	}
 
@@ -280,20 +290,25 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 
 		if (this.cam != null)
 		{
-			float deltaX = (this.player != null) ? (this.player.transform.position.x - this.playerStartX) : 0f;
+			float deltaX = ((this.player != null) && this.player.gameObject.activeInHierarchy) ? (this.player.transform.position.x - this.playerStartX) : 0f;
+			float deltaY = ((this.player != null) && this.player.gameObject.activeInHierarchy) ? (this.player.transform.position.y - this.playerStartY) : 0f;
 			Vector3 fromFinal = _from.cameraPosition;
-			fromFinal.x += deltaX;
+			fromFinal.y += deltaY;
+			if (this.currentAngle == Angle.Isometric)
+			{
+				fromFinal.y += 0.25f*deltaX;
+			}
 
 			if (_to != null)
 			{	
 				Vector3 toFinal = _to.cameraPosition;
-				toFinal.x += deltaX;
+				toFinal.y += deltaY;
 
 				this.cam.transform.position = Vector3.Lerp(fromFinal, toFinal, t);
 			}
 			else if (this.cam.transform.position != fromFinal)
 			{
-				this.cam.transform.position = Vector3.MoveTowards(this.cam.transform.position, fromFinal, 1.0f*Time.deltaTime);
+				this.cam.transform.position = Vector3.MoveTowards(this.cam.transform.position, fromFinal, 4.0f*Time.deltaTime);
 			}
 		}
 	}
@@ -318,6 +333,11 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 			default:
 				break;
 			}
+		}
+		else if (id == "PlayerSpawned")
+		{
+			GridPuzzlePlayerController playerSpawned = (obj1 as GridPuzzleActor).gameObject.GetComponent<GridPuzzlePlayerController>();
+			this.AssignPlayer(playerSpawned);
 		}
 	}
 

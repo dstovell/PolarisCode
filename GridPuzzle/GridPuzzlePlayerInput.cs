@@ -210,10 +210,6 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 			GameObject obj = obj2 as GameObject;
 			Debug.Log("GridPuzzlePlayerInput.OnMessage id=" + id + " action=" + action.ToString() + " name=" + obj.name);
 			break;
-
-		case "PlayerSpawned":
-			this.player = obj1 as GridPuzzlePlayerController;
-			break;
 		}
 	}
 }

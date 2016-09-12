@@ -50,6 +50,7 @@ public class GridPuzzleManager : DSTools.MessengerListener
 	private Dictionary<PuzzlePosition, GameObject> puzzlePositionObjects = new Dictionary<PuzzlePosition, GameObject>();
 	private List<GridPuzzle> loadedPuzzles = new List<GridPuzzle>();
 
+	public GridPuzzleCamera cam;
 	public GridPuzzleCamera.Angle cameraAngle;
 	public GameObject Side2dCamera;
 	public GameObject IsometricCamera;
@@ -74,8 +75,8 @@ public class GridPuzzleManager : DSTools.MessengerListener
 
 		this.cameraAngle = GridPuzzleCamera.Angle.Side2D;
 
-		this.PuzzleHeight = this.GridNodeHeight * (float)this.GridHeight;
-		this.PuzzleWidth = this.GridNodeWidth * (float)this.GridWidth;
+		this.PuzzleHeight = 1f * (float)this.GridHeight;
+		this.PuzzleWidth = 1f * (float)this.GridWidth;
 	}
 
 	// Use this for initialization
@@ -90,6 +91,13 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		this.puzzlePositionObjects[PuzzlePosition.Left] = 		GameObject.Instantiate(this.positonPrefab, new Vector3(-1f*this.PuzzleWidth, 0f, 0f)+this.PuzzleBasePosition, Quaternion.identity) as GameObject;
 
 		this.LoadRequiredPuzzles();
+
+		StartCoroutine(LateStart(0.1f));
+	}
+
+	IEnumerator LateStart(float waitTime)
+	{
+		yield return new WaitForSeconds(waitTime);
 
 		GridPuzzle current = this.GetPuzzle(PuzzlePosition.Current);
 		if (current != null)
@@ -118,6 +126,7 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		if (player != null)
 		{
 			player.parentPuzzle = current;
+			player.transform.SetParent(current.transform);
 		}
 
 		this.loadedActors.Add(actor);
@@ -141,9 +150,8 @@ public class GridPuzzleManager : DSTools.MessengerListener
 	{
 		return this.puzzlePositionObjects.ContainsKey(pos) ? this.puzzlePositionObjects[pos].transform.position : Vector3.zero;
 	}
-	
-	// Update is called once per frame
-	void Update () 
+
+	void Update() 
 	{
 		bool allInPosition = true;
 

@@ -41,7 +41,8 @@ public class GridPuzzlePortal : MonoBehaviour
 			this.TriggerInFX();
 
 			controller.TeleportTo(this.target.gameObject);
-			other.gameObject.transform.parent = this.parentPuzzle.gameObject.transform;
+			GridPuzzle newParent = this.target.gameObject.GetComponentInParent<GridPuzzle>();
+			other.gameObject.transform.SetParent(newParent.transform);
 
 			target.TriggerInFX();
 			target.OnTeleportedTo(other.gameObject);
