@@ -10,6 +10,8 @@ public enum GridPuzzleEditorAction
 	FixPrefab,
 
 	SwitchCamera,
+	CameraUp,
+	CameraDown,
 
 	AddCubes,
 	RemoveCube,
@@ -50,6 +52,14 @@ public class GridPuzzleVectorUIItem : EasyVectorButton
 
 				case GridPuzzleEditorAction.SwitchCamera:
 					camera.ToggleCamera();
+					break;
+
+				case GridPuzzleEditorAction.CameraUp:
+					camera.editorY += 1f;
+					break;
+
+				case GridPuzzleEditorAction.CameraDown:
+					camera.editorY -= 1f;
 					break;
 
 				default:

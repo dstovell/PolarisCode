@@ -121,10 +121,11 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 			if (!this.isUpdating)
 			{
 				this.isUpdating = true;
-				this.updateTime = 0;
+				this.updateTime = 0.001f;
 			}
 
 			float t = this.IsManualCamera() ? Mathf.Abs(this.manualAngleT) : this.updateTime/this.TransitionTimeSeconds;
+			Debug.Log("this.updateTime=" + this.updateTime + " t=" + t);
 
 			UpdateCameraAngle(this.currentAngle, this.desiredAngle, t);
 			UpdateCameraZoom(this.currentAngle, this.desiredAngle, t);
@@ -150,7 +151,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 			{
 				if (!this.IsManualCamera())
 				{
-					bool isMovingBack = (Mathf.Abs(this.manualAngleT) < 0.5f);
+					bool isMovingBack = ((Mathf.Abs(this.manualAngleT) < 0.5f) && !GridPuzzleEditor.IsActive());
 
 					this.updateTime += isMovingBack ? (-1f*Time.deltaTime) : Time.deltaTime;
 					this.updateTime = Mathf.Min(this.updateTime, this.TransitionTimeSeconds);
@@ -175,6 +176,11 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 
 	public void OnManualZoom(float deltaScale)
 	{
+		if (GridPuzzleEditor.IsActive())
+		{
+			return;
+		}
+
 		if (this.cam != null)
 		{
 			float orthographicSizeCurrent = this.cam.orthographicSize;
@@ -190,6 +196,11 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 
 	public void OnManualRotate(float deltaT)
 	{
+		if (GridPuzzleEditor.IsActive())
+		{
+			return;
+		}
+
 		if (this.desiredAngle != this.currentAngle)
 		{
 			this.manualAngleT += 2f*deltaT;
@@ -279,6 +290,9 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		}
 	}
 
+	public float editorX = 0.0f;
+	public float editorY = 0.0f;
+
 	public void UpdateCameraPosition(GridPuzzleCamera.Angle fromAngle, GridPuzzleCamera.Angle toAngle = GridPuzzleCamera.Angle.None, float t = 0f)
 	{
 		GridPuzzleCameraSettings _from = this.settings.ContainsKey(fromAngle) ? this.settings[fromAngle] : null;
@@ -292,6 +306,11 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		{
 			float deltaX = ((this.player != null) && this.player.gameObject.activeInHierarchy) ? (this.player.transform.position.x - this.playerStartX) : 0f;
 			float deltaY = ((this.player != null) && this.player.gameObject.activeInHierarchy) ? (this.player.transform.position.y - this.playerStartY) : 0f;
+			if (GridPuzzleEditor.IsActive())
+			{
+				deltaY = editorX;
+				deltaY = editorY;
+			}
 			Vector3 fromFinal = _from.cameraPosition;
 			fromFinal.y += deltaY;
 			if (this.currentAngle == Angle.Isometric)
@@ -344,6 +363,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 	public GridPuzzleCamera.Angle ToggleCamera()
 	{
 		this.desiredAngle = (this.desiredAngle == Angle.Side2D) ? Angle.Isometric : Angle.Side2D;
+		Debug.LogError("ToggleCamera to " + this.desiredAngle);
 		return this.desiredAngle;
 	}
 }

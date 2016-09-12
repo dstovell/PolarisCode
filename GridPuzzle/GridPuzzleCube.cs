@@ -69,10 +69,6 @@ public class GridPuzzleCube : GridPuzzleNavigable
 
 	void Start()
 	{
-		if (GridPuzzleEditor.IsActive())
-		{
-			this.InitMessenger("GridPuzzleCubeRow");
-		}
 		this.OnCameraAngleChange(this.angle);
 		this.UpdateMagnetic();
 	}
@@ -94,10 +90,14 @@ public class GridPuzzleCube : GridPuzzleNavigable
 		if (this.box != null)
 		{
 			bool enabledForAngle = (angle == GridPuzzleCamera.Angle.Isometric);
-			bool enabled = this.IsTop && enabledForAngle;
+			bool enabled = (this.IsTop || GridPuzzleEditor.IsActive()) && enabledForAngle;
 			if (this.box.enabled != enabled)
 			{
 				this.box.enabled = enabled;
+			}
+			if (GridPuzzleEditor.IsActive())
+			{
+				this.box.isTrigger = true;	
 			}
 		}
 	}
@@ -232,24 +232,12 @@ public class GridPuzzleCube : GridPuzzleNavigable
 		this.angle = angle;
 	}
 
-	public override void OnMessage(string id, object obj1, object obj2)
+	void OnMouseDown() 
 	{
-		if (id == "GridPuzzleEditorAction")
+		Debug.LogError("Cube OnMouseDown");
+		if (GridPuzzleEditor.IsActive())
 		{
-			GridPuzzleEditorAction action = (GridPuzzleEditorAction)obj1;
-
-			switch(action)
-			{
-			case GridPuzzleEditorAction.RemoveCube:
-				GameObject obj = obj2 as GameObject;
-				if (obj == this.gameObject)
-				{
-					this.Destroy();
-				}
-				break;
-			default:
-				break;
-			}
+			this.Destroy();
 		}
-	}
+    }
 }

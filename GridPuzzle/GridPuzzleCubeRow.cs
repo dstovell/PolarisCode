@@ -38,10 +38,6 @@ public class GridPuzzleCubeRow : GridPuzzleNavigable
 
 	void Start()
 	{
-		if (GridPuzzleEditor.IsActive())
-		{
-			this.InitMessenger("GridPuzzleCubeRow");
-		}
 		CreateSafeZone();
 		this.OnCameraAngleChange(this.angle);
 
@@ -53,7 +49,11 @@ public class GridPuzzleCubeRow : GridPuzzleNavigable
 	{		
 		if (this.box != null)
 		{
-			if (this.safeZone != null)
+			if (GridPuzzleEditor.IsActive())
+			{
+				this.box.isTrigger = true;	
+			}
+			else if (this.safeZone != null)
 			{
 				this.box.isTrigger = this.safeZone.IsAnySafe();
 			}
@@ -63,7 +63,7 @@ public class GridPuzzleCubeRow : GridPuzzleNavigable
 			}
 
 			bool enabledForAngle = (this.angle != GridPuzzleCamera.Angle.Isometric);
-			bool enabled = this.IsColliderRow && enabledForAngle;
+			bool enabled = (this.IsColliderRow || GridPuzzleEditor.IsActive()) && enabledForAngle;
 			if (this.box.enabled != enabled)
 			{
 				this.box.enabled = enabled;
@@ -105,7 +105,7 @@ public class GridPuzzleCubeRow : GridPuzzleNavigable
 	public GridPuzzleSafeZone safeZone;
 	public void CreateSafeZone()
 	{
-		if (this.safeZone != null)
+		if ((this.safeZone != null) || (this.cubes == null))
 		{
 			return;
 		}
@@ -225,18 +225,24 @@ public class GridPuzzleCubeRow : GridPuzzleNavigable
 
 	public void AddCubes(GameObject prefab, int maxCubeCount, Vector3 basePostion)
 	{
-		if ((maxCubeCount > 0) && (this.cubes == null))
+		if ((maxCubeCount > 0) && ((this.cubes == null) || GridPuzzleEditor.IsActive()))
 		{
 			int safeCubeCount =  Mathf.Max(maxCubeCount, 1);
 			int offset = -1 * Mathf.FloorToInt((float)safeCubeCount/2f);
-			this.cubes = new GridPuzzleCube[maxCubeCount];
+			if ((this.cubes == null) || (this.cubes.Length != maxCubeCount))
+			{
+				this.cubes = new GridPuzzleCube[maxCubeCount];
+			}
 			for (int j=0; j<maxCubeCount; j++)
 			{
-				int z = j+offset;
-				Vector3 pos = basePostion + new Vector3(0, 0, z);
-				GridPuzzleCube cube = GridPuzzleCube.GeneratePrefab(prefab, pos, this.x, this.y, j);
-				cube.gameObject.transform.SetParent(this.transform);
-				this.cubes[j] = cube;
+				if (this.cubes[j] == null)
+				{
+					int z = j+offset;
+					Vector3 pos = basePostion + new Vector3(0, 0, z);
+					GridPuzzleCube cube = GridPuzzleCube.GeneratePrefab(prefab, pos, this.x, this.y, j);
+					cube.gameObject.transform.SetParent(this.transform);
+					this.cubes[j] = cube;
+				}
 			}
 		}
 	}
@@ -277,6 +283,26 @@ public class GridPuzzleCubeRow : GridPuzzleNavigable
 		return rowComp;
 	}
 
+	void OnMouseDown() 
+	{
+		if (GridPuzzleEditor.IsActive())
+		{
+			bool isFull = (this.GetCubeCount() == 5);
+			if (isFull) 
+			{
+				this.DestoryCubes();
+			}
+			GameObject prefab = GridPuzzleEditor.Instance.cubePrefabs[this.lastEditorIndex];
+			this.AddCubes(prefab, 5, this.transform.position);
+			this.lastEditorIndex++;
+			if (this.lastEditorIndex >= GridPuzzleEditor.Instance.cubePrefabs.Length)
+			{
+				this.lastEditorIndex = 0;
+			}
+		}
+    }
+
+
 	public void OnCameraAngleChange(GridPuzzleCamera.Angle _angle)
 	{
 		this.angle = _angle;
@@ -315,33 +341,5 @@ public class GridPuzzleCubeRow : GridPuzzleNavigable
 			//Figure out which what they are from us and register ourself with them!
 		}
     }
-
-	public override void OnMessage(string id, object obj1, object obj2)
-	{
-		if (id == "GridPuzzleEditorAction")
-		{
-			GridPuzzleEditorAction action = (GridPuzzleEditorAction)obj1;
-
-			switch(action)
-			{
-			case GridPuzzleEditorAction.AddCubes:
-				GameObject obj = obj2 as GameObject;
-				if (obj == this.gameObject)
-				{
-					this.DestoryCubes();
-					GameObject prefab = GridPuzzleEditor.Instance.cubePrefabs[this.lastEditorIndex];
-					this.AddCubes(prefab, 5, this.transform.position);
-					this.lastEditorIndex++;
-					if (this.lastEditorIndex >= GridPuzzleEditor.Instance.cubePrefabs.Length)
-					{
-						this.lastEditorIndex = 0;
-					}
-				}
-				break;
-			default:
-				break;
-			}
-		}
-	}
 }
 

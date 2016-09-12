@@ -847,8 +847,8 @@ public class GridPuzzle : MessengerListener
 			{
 				Vector3 pos = new Vector3(i+widthOffset, j+heightOffset, 0);
 
-				bool addCubes = (j < settings.GridPlateauHeight) ? true : false;
-				if (addCubes)
+				bool addCubes = false;//(j < settings.GridPlateauHeight) ? true : false;
+				//if (addCubes)
 				{
 					GridPuzzleCubeRow newRow = GridPuzzleCubeRow.GeneratePrefab(settings, rowLength, pos, i, j, addCubes);
 					newRow.gameObject.transform.SetParent(puzzleObj.transform);
