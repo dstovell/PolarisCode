@@ -9,6 +9,8 @@ public class GridPuzzleTurnCounter : DSTools.MessengerListener
 
 	public Text text;
 
+	private GridPuzzleCamera.Angle angle = GridPuzzleCamera.Angle.Side2D;
+
 	void Awake()
 	{
 		if (this.text == null)
@@ -45,7 +47,12 @@ public class GridPuzzleTurnCounter : DSTools.MessengerListener
 		}
 		else if (id == "CameraPositionUpdate")
 		{
-			this.count++;
+			GridPuzzleCamera.Angle newAngle = (GridPuzzleCamera.Angle)obj1;
+			if (this.angle != newAngle)
+			{
+				this.count++;
+				this.angle = newAngle;
+			}
 		}
 		else if (id == "OnUpdatedPuzzlePositions")
 		{

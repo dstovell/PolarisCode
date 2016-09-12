@@ -184,8 +184,6 @@ public class GridPuzzleActor : DSTools.MessengerListener
 
 		GridPuzzle puzzle = GridPuzzleManager.Instance.GetCurrentPuzzle();
 
-		GridPuzzleManager.Instance.SpawnPathFollower(p.vectorPath, 10f, 3f);
-
 		//This is likely super slow...need to just make a lookup table I think....
 		List<GridPuzzleCube> cubes = puzzle.GetCubesByNavPoints(p.vectorPath);
 
@@ -228,44 +226,12 @@ public class GridPuzzleActor : DSTools.MessengerListener
 
 		GridPuzzle puzzle = GridPuzzleManager.Instance.GetCurrentPuzzle();
 
-		GridPuzzleManager.Instance.SpawnPathFollower(p.vectorPath, 10f, 3f);
-
 		//This is likely super slow...need to just make a lookup table I think....
 		List<GridPuzzleCubeRow> rows = puzzle.GetCubeRowsByNavPoints(p.vectorPath);
 
-		List<GridPuzzleCubeRow> currentMove = new List<GridPuzzleCubeRow>();
-		for (int i=0; i<rows.Count; i++)
-		{
-			GridPuzzleCubeRow thisRow = rows[i];
-			GridPuzzleCubeRow lastRow = (i != 0) ? rows[i-1] : this.player.currentCubeRow;
-
-			float verticalDelta = (lastRow == null) ? 0 : Mathf.Abs((thisRow.NavPosition.y - lastRow.NavPosition.y));
-			if (verticalDelta > 0.5f)
-			{
-				if (currentMove.Count > 1)
-				{
-					GridPuzzleMoveToRow moveAction = new GridPuzzleMoveToRow();
-					moveAction.Init(currentMove);
-					this.RequestAction(moveAction);
-					currentMove = new List<GridPuzzleCubeRow>();
-				}
-
-				GridPuzzleJumpToRow jumpAction = new GridPuzzleJumpToRow();
-				jumpAction.Init(lastRow, thisRow);
-				this.RequestAction(jumpAction);
-			}
-
-			currentMove.Add(thisRow);
-		}
-
-		if (currentMove.Count > 1)
-		{
-			GridPuzzleMoveToRow moveAction = new GridPuzzleMoveToRow();
-			moveAction.Init(currentMove);
-			this.RequestAction(moveAction);
-			currentMove.Clear();
-		}
-
+		GridPuzzleMoveToRow moveAction = new GridPuzzleMoveToRow();
+		moveAction.Init(rows);
+		this.RequestAction(moveAction);
 
 		this.targetCubeRow = null;
 	}

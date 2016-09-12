@@ -184,6 +184,8 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		{
 			this.anim = this.gameObject.GetComponentInChildren<Animator>();
 		}
+
+		this.mover.lockRotation = DG.Tweening.AxisConstraint.X;
 	}
 
 	public bool IsPlayingAnimType(string type)
@@ -211,13 +213,13 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 
 	public void SetAnimBool(string name, bool enabled)
 	{
-		Debug.Log(name + " enabled=" + enabled);
+		//Debug.Log(name + " enabled=" + enabled);
 		this.anim.SetBool(name, enabled);
 	}
 
 	public void SetAnimTrigger(string name)
 	{
-		Debug.Log(name + " triggered");
+		//Debug.Log(name + " triggered");
 		this.anim.SetTrigger(name);
 	}
 
@@ -285,6 +287,7 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 	void Update () 
 	{
 		UpdateGravity();
+		CheckNavTriggers();
 
 		switch(this.currentState)
 		{
@@ -302,50 +305,9 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 			break;
 		}
 
-		Vector3 desiredLookDirection = (this.movePath != null) ? this.movePath.GetDirection() : this.transform.forward;
-		desiredLookDirection.y = 0;
-		desiredLookDirection = desiredLookDirection.normalized;
-		//Debug.LogError(desiredLookDirection.x + "," + desiredLookDirection.y + "," + desiredLookDirection.z);
-		Vector3 upDirection = Vector3.up; //(this.currentSurface == Surface.Ceiling) ? Vector3.down : Vector3.up;
-		if (desiredLookDirection != Vector3.zero)
-		{
-			this.desiredRotation = Quaternion.LookRotation(desiredLookDirection, upDirection);
-		}
-
-
-		//TODO: Make turnaround more graceful??
-		this.rb.rotation = this.desiredRotation; //Quaternion.RotateTowards(this.transform.rotation, this.desiredRotation, this.RotateSpeed*Time.deltaTime);
-
 		if (this.IsMoving() || this.IsJumping())
 		{
-			 
 			bool isStateReady = this.IsJumping() ? true : this.IsPlayingMovingAnim();
-
-			if (isStateReady && (this.movePath != null))
-			{
-				Vector3 movePos = this.movePath.Move(this.MoveSpeed, Time.deltaTime);
-				//movePos.y = this.transform.position.y;
-				if (this.movePath.targetRow != null)
-				{
-					movePos.z = this.transform.position.z;
-				}
-				this.transform.position = movePos;
-				if (this.movePath.isDone)
-				{
-					if (this.movePath.targetRow != null)
-					{
-						GridPuzzleCube closestCube = this.movePath.targetRow.GetClosestCube(this.transform.position);
-						if (closestCube != null)
-						{
-							this.transform.position = closestCube.NavPosition;//new Vector3(this.transform.position.x, this.transform.position.y, closestCube.NavPosition.z);
-						}
-					}
-					Stop();
-				}
-			}
-
-
-
 
 			if (isStateReady && (this.currentPath != null))
 			{
@@ -420,6 +382,29 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		}
 	}
 
+	public void CheckNavTriggers()
+	{
+		if ((this.currentPath == null) || (this.anim == null) || (this.mover == null))
+		{
+			return;
+		}
+
+		int currentPoint = this.mover.currentPoint;
+		if (this.currentPath.waypoints.Length <= currentPoint)
+		{
+			return;
+		}
+
+		GameObject obj = this.currentPath.waypoints[currentPoint].gameObject;
+		if (obj.tag.StartsWith("AT_"))
+		{
+			string triggerName = obj.tag.Replace("AT_", "");
+			this.anim.SetTrigger(triggerName);
+			this.mover.speed *= 0.5f;
+			obj.tag = "Done";
+		}
+	}
+
 	void LateUpdate()
     {
 //        BlinkEyes();
@@ -482,31 +467,6 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		this.movePath.targetRow = row;
 		this.movePath.jumpUp = jumpUp;
 		this.SetState(State.Jump);
-
-		//Debug.LogError("MovePath cubes=" + cubes.Count);
-//		List<Vector3> points = new List<Vector3>();
-//		for (int i=0; i<cubes.Count; i++)
-//		{
-//			points.Add( cubes[i].NavPosition );
-//		}
-//
-//		GameObject obj = new GameObject();
-//		obj.name = "PlayerCubePath";
-//
-//		this.currentPath = obj.AddComponent<SWS.PathManager>();
-//		this.currentPath.waypoints = new Transform[cubes.Count];
-//		for (int i=0; i<cubes.Count; i++)
-//		{
-//			GameObject cubeObj = new GameObject("PlayerCubeNode");
-//			cubeObj.transform.position = cubes[i].NavPosition;
-//			//cubeObj.transform.rotation =;
-//			cubeObj.transform.SetParent(obj.transform);
-//			this.currentPath.waypoints[i] = cubeObj.transform;
-//		}
-//
-//		this.moverStarted = false;
-//
-//		this.SetState(State.Run);
 	}
 
 	public void ChangeVertical(List<GridPuzzleCubeRow> rows)
@@ -568,6 +528,148 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		this.SetState(State.Jump);
 	}
 
+	public enum Transition
+	{
+		Unknown,
+		Linear,
+		JumpDown,
+		JumpUp,
+		ClimbDown,
+		ClimbUp,
+	}
+
+	public bool IsUnitDirXZ(Vector3 dir)
+	{
+		float absX = Mathf.RoundToInt(Mathf.Abs(dir.x));
+		float absZ = Mathf.RoundToInt(Mathf.Abs(dir.z));
+		bool isOneZero = (absX == 0) || (absZ == 0);
+		bool isOneOne = (absX == 1) || (absZ == 1);
+		return 	( isOneZero && isOneOne );
+	}
+
+	public Transition GetTransitionType(GridPuzzleNavigable n1, GridPuzzleNavigable n2)
+	{
+		Vector3 deltaDir = n2.NavPosition - n1.NavPosition;
+		Vector3 clamped = new Vector3(Mathf.RoundToInt(deltaDir.x), Mathf.RoundToInt(deltaDir.y), Mathf.RoundToInt(deltaDir.z));
+
+		Transition tt = Transition.Unknown;
+		if (clamped.y == 0)
+		{
+			if (this.IsUnitDirXZ(clamped))
+			{
+				tt = Transition.Linear;
+			}
+		}
+		else if ((clamped.y == -1) || (clamped.y == -2))
+		{
+			if (this.IsUnitDirXZ(clamped))
+			{
+				tt = Transition.JumpDown;
+			}
+		}
+		else if ((clamped.y == 1) || (clamped.y == 2))
+		{
+			if (this.IsUnitDirXZ(clamped))
+			{
+				tt = Transition.ClimbUp;
+			}
+		}
+
+		if ((clamped.y != 0) && (tt == Transition.Unknown))
+		{
+			//Perspective Transitions
+			tt = Transition.Linear;
+		}
+
+		Debug.LogError("GetTransitionPath " + n1.NavPosition.y + " -> " + n2.NavPosition.y + " clamped="+ clamped.ToString() + " IsUnitDirXZ=" + this.IsUnitDirXZ(clamped) +" => " + tt.ToString());
+
+		return tt;
+	}
+
+	public List<Vector3> GetTransitionPath(GridPuzzleNavigable n1, GridPuzzleNavigable n2)
+	{
+		List<Vector3> pointsToAdd = new List<Vector3>();
+		Transition tt = this.GetTransitionType(n1, n2);
+		if (tt == Transition.Unknown)
+		{
+			return pointsToAdd;
+		}
+		else if (tt == Transition.Linear)
+		{
+			pointsToAdd.Add(n2.NavPosition);
+		}
+		else if (tt == Transition.JumpDown)
+		{
+			Vector3 p1 = n1.NavPosition;
+			p1.x = Mathf.Lerp(n1.NavPosition.x, n2.NavPosition.x, 0.6f);
+
+			Vector3 p2 = Vector3.Lerp(n1.NavPosition, n2.NavPosition, 0.5f);
+			p2.x = Mathf.Lerp(n1.NavPosition.x, n2.NavPosition.x, 0.9f);
+
+			pointsToAdd.Add(p1);
+			pointsToAdd.Add(p2);
+			pointsToAdd.Add(n2.NavPosition);
+		}
+
+		return pointsToAdd;
+	}
+
+	public List<Transform> GenerateFullPath(List<GridPuzzleNavigable> navs)
+	{
+		List<Transform> points = new List<Transform>();
+		for (int i=0; i<navs.Count; i++)
+		{
+			if (i == 0)
+			{
+				GameObject pointObj = new GameObject("Linear");
+				pointObj.transform.position = navs[i].NavPosition;
+				points.Add(pointObj.transform);
+			}
+			else
+			{
+				Transition tt = this.GetTransitionType(navs[i-1], navs[i]);
+				List<Vector3> tp = this.GetTransitionPath(navs[i-1], navs[i]);
+				if (tp.Count > 0)
+				{
+					if ((tt == Transition.JumpDown) || (tt == Transition.JumpUp))
+					{
+						points[points.Count-1].gameObject.tag = "AT_Jump";
+					}
+
+					for (int j=0; j<tp.Count; j++)
+					{
+						GameObject pointObj = new GameObject(tt.ToString());
+						pointObj.transform.position = tp[j];
+						points.Add(pointObj.transform);
+					}
+				}
+			}
+		}
+		return points;
+	}
+
+	public SWS.PathManager GeneratePathManager(string name, List<GridPuzzleNavigable> navs)
+	{
+		List<Transform> points = this.GenerateFullPath(navs);
+		Debug.LogError("GeneratePathManager navs=" + navs.Count + " points=" + points.Count);
+
+		GridPuzzleManager.Instance.SpawnPathFollower(points, 10f, 3f);
+
+		GameObject obj = new GameObject();
+		obj.name = name + "Path";
+
+		SWS.PathManager path = obj.AddComponent<SWS.PathManager>();
+		path.waypoints = new Transform[points.Count];
+
+		for (int i=0; i<points.Count; i++)
+		{
+			points[i].SetParent(obj.transform);
+			path.waypoints[i] = points[i];
+		}
+
+		return path;
+	}
+
 	public void MovePath(List<GridPuzzleCubeRow> rows, State s = State.Jog)
 	{
 		if (this.currentPath != null)
@@ -577,23 +679,12 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 
 		//Debug.LogError("MovePath rows=" + rows.Count);
 
-		GameObject obj = new GameObject();
-		obj.name = "PlayerRowPath";
-
-		this.currentPath = obj.AddComponent<SWS.PathManager>();
-		this.currentPath.waypoints = new Transform[rows.Count];
-
-		//The rest of the path
+		List<GridPuzzleNavigable> navs = new List<GridPuzzleNavigable>();
 		for (int i=0; i<rows.Count; i++)
 		{
-			GameObject cubeObj = new GameObject("PlayerRowNode");
-
-			cubeObj.transform.position = rows[i].NavPosition;
-			//cubeObj.transform.rotation =;
-
-			cubeObj.transform.SetParent(obj.transform);
-			this.currentPath.waypoints[i] = cubeObj.transform;
+			navs.Add(rows[i]);
 		}
+		this.currentPath = this.GeneratePathManager("PlayerRow", navs);
 
 		this.moverStarted = false;
 
@@ -682,6 +773,10 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		if (cube != null)
 		{
 			this.currentCube = cube;
+			if (cube.parentPuzzle != null)
+			{
+				this.parentPuzzle = cube.parentPuzzle;
+			}
 			return;
 		}
 
@@ -689,6 +784,10 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		if (row != null)
 		{
 			this.currentCubeRow = row;
+			if (row.parentPuzzle != null)
+			{
+				this.parentPuzzle = row.parentPuzzle;
+			}
 			return;
 		}
 	}

@@ -177,12 +177,19 @@ public class GridPuzzlePlayerInput : DSTools.MessengerListener
 		ScreenTransformGesture gesture = sender as ScreenTransformGesture;
 		if (gesture != null)
 		{
-			Vector2 dragDelta = (gesture.NormalizedScreenPosition - gesture.PreviousNormalizedScreenPosition);
-			if (Mathf.Abs(dragDelta.x) >= Mathf.Abs(dragDelta.y))
+			if (gesture.DeltaScale != 1)
 			{
-				float amount = dragDelta.x;
-				//Debug.LogError("TransformedHandler amount=" + amount);
-				this.cam.OnManualInput(amount);
+				this.cam.OnManualZoom(gesture.DeltaScale);
+			}
+			else
+			{
+				Vector2 dragDelta = (gesture.NormalizedScreenPosition - gesture.PreviousNormalizedScreenPosition);
+				if (Mathf.Abs(dragDelta.x) >= Mathf.Abs(dragDelta.y))
+				{
+					float amount = dragDelta.x;
+					//Debug.LogError("TransformedHandler amount=" + amount);
+					this.cam.OnManualRotate(amount);
+				}
 			}
 		}
 	}

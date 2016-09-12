@@ -197,6 +197,17 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		return puzzle;
 	}
 
+	public void SpawnPathFollower(List<Transform> path, float speed = 1f, float verticalAdjustment=0f, GameObject toEnable=null)
+	{
+		List<Vector3> pathV = new List<Vector3>();
+		for (int i=0; i<path.Count; i++)
+		{
+			pathV.Add(path[i].position);
+		}
+
+		this.SpawnPathFollower(pathV, speed, verticalAdjustment, toEnable);
+	}
+
 	public void SpawnPathFollower(List<Vector3> path, float speed = 1f, float verticalAdjustment=0f, GameObject toEnable=null)
 	{
 		//Debug.LogError("SpawnPathFollower prefab=" + (this.pathFollowerPrefab != null) + " path.Count=" + path.Count);
