@@ -75,7 +75,7 @@ public class GridPuzzleCube : GridPuzzleNavigable
 
 	public void CreateNavPoint()
 	{
-		Debug.LogError("Cube.CreateNavPoint");
+		//Debug.LogError("Cube.CreateNavPoint");
 		if ((this.NavPoint == null) && this.IsNavigable)
 		{
 			this.NavPoint = new GameObject("NavPoint_Iso");
@@ -95,9 +95,11 @@ public class GridPuzzleCube : GridPuzzleNavigable
 			{
 				this.box.enabled = enabled;
 			}
+			this.box.isTrigger = false;
+
 			if (GridPuzzleEditor.IsActive())
 			{
-				this.box.isTrigger = true;	
+				this.box.isTrigger = true;		
 			}
 		}
 	}

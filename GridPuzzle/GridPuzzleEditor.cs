@@ -10,6 +10,8 @@ public class GridPuzzleEditor : DSTools.MessengerListener
 	public GameObject [] teleporterPrefabs;
 	public GameObject [] sideWallPrefabs;
 
+	public GameObject existingPuzzleToEdit;
+
 	public int GridHeight;
 	public int GridWidth;
 	public int GridDepth;
@@ -27,6 +29,8 @@ public class GridPuzzleEditor : DSTools.MessengerListener
 	void Start() 
 	{
 		this.InitMessenger("GridPuzzleEditor");
+
+		LoadExistingPrefab();
 	}
 
 	public bool GeneratePrefabNow = false;
@@ -44,6 +48,15 @@ public class GridPuzzleEditor : DSTools.MessengerListener
 
 		settings.GridPlateauHeight = this.GridPlateauHeight;
 		return settings;
+	}
+
+	public void LoadExistingPrefab()
+	{
+		if (this.existingPuzzleToEdit != null)
+		{
+			GameObject obj = GameObject.Instantiate(this.existingPuzzleToEdit) as GameObject;
+			this.currentPuzzle = obj.GetComponent<GridPuzzle>();
+		}
 	}
 
 	public void GeneratePrefab()

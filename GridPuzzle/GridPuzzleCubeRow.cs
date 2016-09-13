@@ -287,13 +287,13 @@ public class GridPuzzleCubeRow : GridPuzzleNavigable
 	{
 		if (GridPuzzleEditor.IsActive())
 		{
-			bool isFull = (this.GetCubeCount() == 5);
+			bool isFull = (this.GetCubeCount() == this.parentPuzzle.GridDepth);
 			if (isFull) 
 			{
 				this.DestoryCubes();
 			}
 			GameObject prefab = GridPuzzleEditor.Instance.cubePrefabs[this.lastEditorIndex];
-			this.AddCubes(prefab, 5, this.transform.position);
+			this.AddCubes(prefab, parentPuzzle.GridDepth, this.transform.position);
 			this.lastEditorIndex++;
 			if (this.lastEditorIndex >= GridPuzzleEditor.Instance.cubePrefabs.Length)
 			{

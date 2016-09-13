@@ -50,7 +50,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		this.settings = new Dictionary<GridPuzzleCamera.Angle,GridPuzzleCameraSettings>();
 
 		this.settings[Angle.Side2D] = new GridPuzzleCameraSettings();
-		this.settings[Angle.Side2D].orthographicSize = 3.35f;
+		this.settings[Angle.Side2D].orthographicSize = 4f;
 		this.settings[Angle.Side2D].orthographicSizeMax = 8.35f;
 		this.settings[Angle.Side2D].cameraPosition = new Vector3(-0.52f, -0.28f, -8f);
 		this.settings[Angle.Side2D].cameraRotation = Quaternion.identity;
@@ -59,13 +59,21 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		this.settings[Angle.Side2D].verticalLensShift = 0f;
 
 		this.settings[Angle.Isometric] = new GridPuzzleCameraSettings();
-		this.settings[Angle.Isometric].orthographicSize = 3.8f;
+		this.settings[Angle.Isometric].orthographicSize = 4.45f;
 		this.settings[Angle.Isometric].orthographicSizeMax = 8.8f;
 		this.settings[Angle.Isometric].cameraPosition = new Vector3(-4.84f, 3f, -4.96f);
 		this.settings[Angle.Isometric].cameraRotation = Quaternion.Euler(new Vector3(0f, 45f, 0f));
 		this.settings[Angle.Isometric].nearPlane = 0.1f;
 		this.settings[Angle.Isometric].farPlane = 50f;
 		this.settings[Angle.Isometric].verticalLensShift = -0.7f;
+
+		if (GridPuzzleEditor.IsActive())
+		{
+			foreach(KeyValuePair<GridPuzzleCamera.Angle,GridPuzzleCameraSettings> entry in this.settings)
+			{
+				entry.Value.orthographicSize += 1.0f;
+			}
+		}
 	}
 
 	// Use this for initialization
@@ -110,7 +118,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 	{
 		this.player = _player;
 		this.playerStartX = this.player.transform.position.x;
-		this.playerStartY = this.player.transform.position.y;
+		this.playerStartY = -2f;//this.player.transform.position.y;
 	}
 	
 	// Update is called once per frame
@@ -166,7 +174,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 			{
 				UpdateCameraZoom(this.currentAngle);
 			}
-			bool isPlayerMoving = ((this.player != null) && this.player.IsMoving());
+			bool isPlayerMoving = ( (this.player != null) && (this.player.IsMoving() || this.player.IsClimbing()) );
 			if (!isPlayerMoving)
 			{
 				UpdateCameraPosition(this.currentAngle);

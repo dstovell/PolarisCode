@@ -209,15 +209,18 @@ public class GridPuzzle : MessengerListener
 		cubeAlignmentVectors.Add(Vector3.right); vectorUsed.Add(false);
 		cubeAlignmentVectors.Add(Vector3.forward); vectorUsed.Add(false);
 
+		cubeAlignmentVectors.Add(Vector3.right+Vector3.up); vectorUsed.Add(false);
+		cubeAlignmentVectors.Add(Vector3.forward+Vector3.up); vectorUsed.Add(false);
+
 		Vector3 deltaVector = new Vector3(1,-1,1);
 
-		Vector3 n1EdgePos = cube.NavPosition + new Vector3(0.5f, 0, 0f);
+		//Vector3 n1EdgePos = cube.NavPosition + new Vector3(0.5f, 0, 0f);
 
 		string [] maskStrings = new string[1]{"Cube"};
 		LayerMask mask = LayerMask.GetMask(maskStrings);
 
 		List<GridPuzzleCube> alignedCubes = new List<GridPuzzleCube>();
-		for (int i=1; i<2; i++)
+		for (int i=-20; i<20; i++)
 		{
 			for (int j=0; j<cubeAlignmentVectors.Count; j++)
 			{
@@ -230,34 +233,44 @@ public class GridPuzzle : MessengerListener
 				GridPuzzleCube alignedCube = this.GetCube(cube.x + (int)dv.x, cube.y + (int)dv.y, cube.z + (int)dv.z);
 				if ((alignedCube != null) && alignedCube.IsNavigable)
 				{
-					Vector3 n2EdgePos = alignedCube.NavPosition + new Vector3(-0.5f, 0, 0f);;
-					Vector3 dir = (n2EdgePos - n1EdgePos).normalized;
+					//Vector3 n2EdgePos = alignedCube.NavPosition + new Vector3(-0.5f, 0, 0f);;
+					//Vector3 dir = (n2EdgePos - n1EdgePos).normalized;
 
 					alignedCubes.Add(alignedCube);
-
-					/*RaycastHit hitPoint = new RaycastHit();
-        			Ray ray = new Ray(transform.position, transform.forward);
-					//RayCast, then connect
-					if (Physics.Raycast(ray, out hitPoint, 20, mask))
-					{
-						if (hitPoint.collider.gameObject == alignedCube.gameObject)
-						{
-							alignedCubes.Add(alignedCube);
-						}
-						else
-						{
-							GridPuzzleCube cubeHit = hitPoint.collider.gameObject.GetComponent<GridPuzzleCube>();
-							Debug.LogError("expected " + alignedCube.x + ","+alignedCube.y +","+alignedCube.z + " got " + cubeHit.x + ","+cubeHit.y +","+cubeHit.z);
-						}
-					}
-					else
-					{
-						Debug.LogError("Hit nothing at distance " + 1.5f*i);
-					}*/
+					vectorUsed[j] = true;
+					//Debug.LogError("alignedCube FOUND for " + dv.ToString());
 				}
 			}
 		}
 		return alignedCubes;
+	}
+
+	public Vector3 GetPerspectiveAlignedCubeVector(GridPuzzleCube cube, GridPuzzleCube alignedCube)
+	{
+		Vector3 deltaVector = new Vector3(1,-1,1);
+		Vector3 c = cube.GridPositon;
+		Vector3 ac = alignedCube.GridPositon;
+
+		for (int i=-20; i<20; i++)
+		{
+			Vector3 av = ac - c - (i*deltaVector);
+
+			int oneCount = 0;
+			int zeroCount = 0;
+			if (av.x == 0) zeroCount++;
+			if (av.y == 0) zeroCount++;
+			if (av.z == 0) zeroCount++;
+			if (av.x == 1) oneCount++;
+			if (av.y == 1) oneCount++;
+			if (av.z == 1) oneCount++;
+
+			if ( ((oneCount == 1) && (zeroCount == 2)) || ((oneCount == 2) && (zeroCount == 1)) )
+			{
+				return av;
+			}
+		}
+
+		return Vector3.zero;
 	}
 
 	public void Scan(AstarPath path)
@@ -269,6 +282,7 @@ public class GridPuzzle : MessengerListener
 		this.IsometricGraph.limits.y = 1.01f;
 		this.IsometricGraph.limits.z = 1.01f;
 		this.IsometricGraph.raycast = false;
+		this.ScanIsometric(this.IsometricGraph, true);
 
 		this.Side2dGraph = path.astarData.AddGraph(typeof(PointGraph)) as PointGraph;
 		this.Side2dGraph.searchTag = "NavPoint_Side2D";
@@ -276,7 +290,7 @@ public class GridPuzzle : MessengerListener
 		this.Side2dGraph.limits.x = 1.2f;
 		this.Side2dGraph.limits.y = 3.01f;
 		this.Side2dGraph.limits.z = 1.0f;
-		this.IsometricGraph.raycast = false;
+		this.ScanSide2d(this.Side2dGraph, true);
 
 		path.Scan();
 
@@ -285,11 +299,13 @@ public class GridPuzzle : MessengerListener
 			return;
 		}
 
-		this.ScanIsometric(this.IsometricGraph);
-		this.ScanSide2d(this.Side2dGraph);
+		AstarPath.RegisterSafeUpdate (() => {
+			this.LinkIsometric();
+			this.LinkSide2d();
+		});
 	}
 
-	public void ScanIsometric(PointGraph isometricGraph)
+	public void ScanIsometric(PointGraph isometricGraph, bool tagOnly = false)
 	{
 		this.IsometricGraph = isometricGraph;
 
@@ -298,14 +314,27 @@ public class GridPuzzle : MessengerListener
 			return;
 		}
 
+		if (!tagOnly)
+		{
+			this.cubeNavLinks = new Dictionary<int, CubeNavLink>();
+		}
+
+		this.SetupIsometricNavPoints(tagOnly);
+
+		if (!tagOnly)
+		{
+			this.LinkNavigableCubes();
+		}
+	}
+
+	public void LinkIsometric()
+	{
 		this.cubeNavLinks = new Dictionary<int, CubeNavLink>();
-
 		this.SetupIsometricNavPoints(false);
-
 		this.LinkNavigableCubes();
 	}
 
-	public void ScanSide2d(PointGraph side2dGraph)
+	public void ScanSide2d(PointGraph side2dGraph, bool tagOnly = false)
 	{
 		this.Side2dGraph = side2dGraph;
 
@@ -314,8 +343,17 @@ public class GridPuzzle : MessengerListener
 			return;
 		}
 
-		this.rowNavLinks = new Dictionary<int, CubeRowNavLink>();
+		if (!tagOnly)
+		{
+			this.rowNavLinks = new Dictionary<int, CubeRowNavLink>();
+		}
 
+		this.SetupSide2dNavPoints(tagOnly);
+	}
+
+	public void LinkSide2d()
+	{
+		this.rowNavLinks = new Dictionary<int, CubeRowNavLink>();
 		this.SetupSide2dNavPoints(false);
 	}
 
@@ -374,7 +412,7 @@ public class GridPuzzle : MessengerListener
 							}
 							else
 							{
-								this.IsometricGraph.AddNode(pos);
+								node = this.IsometricGraph.AddNode(pos);
 								node.Walkable = true;
 								pointsAdded++;
 							}
@@ -498,7 +536,7 @@ public class GridPuzzle : MessengerListener
 			}
 		}
 
-		Debug.LogError("LinkNavigableCubes cubesSearched=" + cubesSearched + " cubesLinked=" + cubesLinked + " cubesLinkedPerspective=" + cubesLinkedPerspective);
+		Debug.Log("LinkNavigableCubes cubesSearched=" + cubesSearched + " cubesLinked=" + cubesLinked + " cubesLinkedPerspective=" + cubesLinkedPerspective);
 	}
 
 	public void Optimize()
@@ -536,6 +574,19 @@ public class GridPuzzle : MessengerListener
 
 	public void Fix()
 	{
+		if ((this.GridWidth == 0) || (this.GridHeight == 0) || (this.GridDepth == 0))
+		{
+			Debug.LogError("Attemping to add cubes to a puzzle with no cubeGrid or stored settings");
+			return;
+		}
+
+		Debug.Log("Attemping to add cubes to a puzzle with no cubeGrid, building from strored settings");
+		this.cubeGrid = new GridPuzzleCube[this.GridWidth, this.GridHeight, this.GridDepth];
+
+		int rowsMissing = 0;
+		int rowsRemoved = 0;
+		int cubesAdded = 0;
+		List<GridPuzzleCubeRow> rowList = new List<GridPuzzleCubeRow>();
 		if (this.rows != null)
 		{
 			for (int i=0; i<this.rows.Length; i++)
@@ -544,14 +595,28 @@ public class GridPuzzle : MessengerListener
 				if (row != null)
 				{
 					int numAdded = this.AddCubesFromRow(row);
+					cubesAdded += numAdded;
 					if (numAdded == 0)
 					{
-						GameObject.Destroy(row);
-						this.rows[i] = null;
+						rowsRemoved++;
+						GameObject.Destroy(row.gameObject);
 					}
+					else 
+					{
+						rowList.Add(this.rows[i]);
+					}
+					this.rows[i] = null;
+				}
+				else
+				{
+					rowsMissing++;
 				}
 			}
 		}
+
+		this.rows = rowList.ToArray();
+
+		Debug.Log("Fix rowsMissing=" + rowsMissing + " rowsRemoved=" + rowsRemoved + " cubesAdded=" + cubesAdded);
 	}
 
 	public bool HasRelativeNeighbour(GridPuzzleCube cube, Vector3 dir)
@@ -827,18 +892,21 @@ public class GridPuzzle : MessengerListener
 	static public GridPuzzle GeneratePrefab(GridPuzzle.Settings settings)
 	{
 		GameObject puzzleObj = new GameObject("GridPuzzle");
-		puzzleObj.transform.position = Vector3.zero;
 		GridPuzzle puzzle = puzzleObj.AddComponent<GridPuzzle>();
+
 		puzzle.GridWidth = settings.GridWidth;
 		puzzle.GridHeight = settings.GridHeight;
 		puzzle.GridDepth = settings.GridDepth;
+		puzzle.GridCubeSize = settings.GridCubeSize;
+
+		puzzleObj.transform.position = Vector3.zero;
 
 		int rowLength = puzzle.GridDepth;
 
 		puzzle.rows = new GridPuzzleCubeRow[puzzle.GridWidth*puzzle.GridHeight];
 
 		int widthOffset = -1 * Mathf.FloorToInt((float)settings.GridWidth/2f);
-		int heightOffset = -1 * Mathf.FloorToInt((float)settings.GridHeight/2f);
+		int heightOffset = 0; //-1 * Mathf.FloorToInt((float)settings.GridHeight/2f);
 
 		int rowIndex = 0;
 		for (int j=0; j<puzzle.GridHeight; j++)
@@ -881,21 +949,9 @@ public class GridPuzzle : MessengerListener
 	public int AddCubesFromRow(GridPuzzleCubeRow newRow)
 	{
 		int numAdded = 0;
-		if (this.cubeGrid == null)
-		{
-			if ((this.GridWidth == 0) || (this.GridHeight == 0) || (this.GridDepth == 0))
-			{
-				Debug.LogError("Attemping to add cubes to a puzzle with no cubeGrid or stored settings");
-				return numAdded;
-			}
-
-			Debug.LogWarning("Attemping to add cubes to a puzzle with no cubeGrid, building from strored settings");
-			this.cubeGrid = new GridPuzzleCube[this.GridWidth, this.GridHeight, this.GridDepth];
-		}
 
 		if (newRow.cubes != null)
 		{
-			
 			for (int k=0; k<newRow.cubes.Length; k++)
 			{
 				GridPuzzleCube cube = newRow.cubes[k];

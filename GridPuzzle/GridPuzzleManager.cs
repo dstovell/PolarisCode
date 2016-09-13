@@ -196,6 +196,11 @@ public class GridPuzzleManager : DSTools.MessengerListener
 
 		puzzle.Fix();
 
+		if ((puzzle.spawnPoint != null) && (puzzle.exitPoint != null))
+		{
+			puzzle.exitPoint = puzzle.spawnPoint.GetComponent<GridPuzzlePortal>();
+		}
+
 		puzzle.OnCameraAngleChange(this.cameraAngle);
 
 		this.loadedPuzzles.Add(puzzle);
@@ -269,12 +274,12 @@ public class GridPuzzleManager : DSTools.MessengerListener
 			this.SetupPathfinding( this.GetPuzzle(PuzzlePosition.Current) );
 		}
 
-		if (!this.puzzlePositions.ContainsKey(PuzzlePosition.Top))
-		{
-			this.LoadPuzzle( this.PickRandomPrefab(this.puzzlePrefabs), PuzzlePosition.Top );
-			//this.SetupPathfinding( this.GetPuzzle(PuzzlePosition.Top) );
-			this.ConnectPuzzle(this.GetPuzzle(PuzzlePosition.Current), this.GetPuzzle(PuzzlePosition.Top));
-		}
+//		if (!this.puzzlePositions.ContainsKey(PuzzlePosition.Top))
+//		{
+//			this.LoadPuzzle( this.PickRandomPrefab(this.puzzlePrefabs), PuzzlePosition.Top );
+//			//this.SetupPathfinding( this.GetPuzzle(PuzzlePosition.Top) );
+//			this.ConnectPuzzle(this.GetPuzzle(PuzzlePosition.Current), this.GetPuzzle(PuzzlePosition.Top));
+//		}
 	}
 
 	private void SetupPathfinding(GridPuzzle puzzle)

@@ -171,6 +171,8 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 	private SWS.splineMove mover;
 	private SWS.PathManager pathManager;
 
+	private CapsuleCollider capsule;
+
 	// Use this for initialization
 	void Start() 
 	{
@@ -178,6 +180,7 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		this.currentState = State.Idle;
 		this.currentSurface = Surface.Floor;
 		this.rb = this.gameObject.GetComponent<Rigidbody>();
+		this.capsule = this.gameObject.GetComponent<CapsuleCollider>();
 		this.mover = this.gameObject.GetComponent<SWS.splineMove>();
 		this.pathManager = this.gameObject.GetComponent<SWS.PathManager>();
 
@@ -265,30 +268,36 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		switch(newState)
 		{
 		case State.Idle:
+			//this.capsule.enabled = true;
 			this.SetMoveType("Idle");
 			break;
 		case State.Walk:
+			//this.capsule.enabled = true;
 			this.SetMoveType("Walk");
 			this.mover.easeType = DG.Tweening.Ease.Linear;
 			this.MoveSpeed = 2f;
 			break;
 		case State.Jog:
+			//this.capsule.enabled = true;
 			this.SetMoveType("Jog");
 			this.mover.easeType = DG.Tweening.Ease.InOutSine;
 			this.MoveSpeed = 5f;
 			break;
 		case State.Run:
+			//this.capsule.enabled = true;
 			this.SetMoveType("Run");
 			this.mover.easeType = DG.Tweening.Ease.InOutSine;
 			this.MoveSpeed = 5f;
 			break;
 		case State.Jump:
+			//this.capsule.enabled = true;
 			//this.SetAnimTrigger("Jump");
 			this.SetAnimTrigger("Dismount");
 			this.mover.easeType = DG.Tweening.Ease.OutSine;
 			this.MoveSpeed = 5f;
 			break;
 		case State.Climb:
+			//this.capsule.enabled = false;
 			this.SetAnimTrigger("Mount");
 			this.mover.easeType = DG.Tweening.Ease.Linear;
 			this.MoveSpeed = 0.8f;
@@ -373,7 +382,7 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 
 	public void UpdateGravity()
 	{
-		if (!this.IsJumping())
+		if (!this.IsJumping() && !this.IsClimbing())
 		{
 			this.rb.AddForce(9.8f * this.rb.mass * Vector3.down);
 		}
@@ -507,7 +516,7 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 			return;
 		}
 
-		Debug.LogError("ChangeVertical rows=" + rows.Count);
+		//Debug.LogError("ChangeVertical rows=" + rows.Count);
 		//bool isJumpUp = (rows[0].NavPosition.y - rows[rows.Count-1].NavPosition.y);
 
 		GameObject obj = new GameObject();
@@ -601,13 +610,26 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 			}
 		}
 
-		if ((clamped.y != 0) && (tt == Transition.Unknown))
+		if (tt == Transition.Unknown)
 		{
 			//Perspective Transitions
-			tt = Transition.Linear;
+			Vector3 alignmentVector = this.parentPuzzle.GetPerspectiveAlignedCubeVector(n1 as GridPuzzleCube, n2 as GridPuzzleCube);
+			//Debug.LogError("GetTransitionType alignmentVector=" + alignmentVector.ToString());
+			if (alignmentVector.y > 0)
+			{
+				tt = Transition.ClimbUp;
+			}
+			else if (alignmentVector.y < 0)
+			{
+				tt = Transition.JumpDown;
+			}
+			else
+			{
+				tt = Transition.Linear;
+			}
 		}
 
-		Debug.LogError("GetTransitionPath " + n1.NavPosition.y + " -> " + n2.NavPosition.y + " clamped="+ clamped.ToString() + " IsUnitDirXZ=" + this.IsUnitDirXZ(clamped) +" => " + tt.ToString());
+		//Debug.LogError("GetTransitionPath " + n1.NavPosition.y + " -> " + n2.NavPosition.y + " clamped="+ clamped.ToString() + " IsUnitDirXZ=" + this.IsUnitDirXZ(clamped) +" => " + tt.ToString());
 
 		return tt;
 	}
@@ -720,7 +742,7 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 	public SWS.PathManager GeneratePathManager(string name, List<GridPuzzleNavigable> navs)
 	{
 		List<Transform> points = this.GenerateFullPath(navs);
-		Debug.LogError("GeneratePathManager navs=" + navs.Count + " points=" + points.Count);
+		//Debug.LogError("GeneratePathManager navs=" + navs.Count + " points=" + points.Count);
 
 		GridPuzzleManager.Instance.SpawnPathFollower(points, 10f, 3f);
 
@@ -761,7 +783,7 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		{
 			GameObject secondNavPoint = this.currentPath.waypoints[1].gameObject;
 			Transition firstTransition = this.GetTransitionTypeOfPoint(secondNavPoint);
-			Debug.LogError("secondNavPoint name=" + secondNavPoint.name + " firstTransition=" + firstTransition.ToString());
+			//Debug.LogError("secondNavPoint name=" + secondNavPoint.name + " firstTransition=" + firstTransition.ToString());
 			if ((firstTransition == Transition.ClimbUp) || (firstTransition == Transition.ClimbDown))
 			{
 				s = State.Climb;
@@ -794,7 +816,7 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 
 		GameObject secondNavPoint = this.currentPath.waypoints[1].gameObject;
 		Transition firstTransition = this.GetTransitionTypeOfPoint(secondNavPoint);
-		Debug.LogError("secondNavPoint name=" + secondNavPoint.name + " firstTransition=" + firstTransition.ToString());
+		//Debug.LogError("secondNavPoint name=" + secondNavPoint.name + " firstTransition=" + firstTransition.ToString());
 		if ((firstTransition == Transition.ClimbUp) || (firstTransition == Transition.ClimbDown))
 		{
 			s = State.Climb;
