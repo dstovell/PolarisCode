@@ -214,14 +214,17 @@ public class GridPuzzle : MessengerListener
 
 		Vector3 deltaVector = new Vector3(1,-1,1);
 
-		//Vector3 n1EdgePos = cube.NavPosition + new Vector3(0.5f, 0, 0f);
-
 		string [] maskStrings = new string[1]{"Cube"};
 		LayerMask mask = LayerMask.GetMask(maskStrings);
 
 		List<GridPuzzleCube> alignedCubes = new List<GridPuzzleCube>();
 		for (int i=-20; i<20; i++)
 		{
+			if (i == 0)
+			{
+				continue;
+			}
+
 			for (int j=0; j<cubeAlignmentVectors.Count; j++)
 			{
 				if (vectorUsed[j])
@@ -233,9 +236,16 @@ public class GridPuzzle : MessengerListener
 				GridPuzzleCube alignedCube = this.GetCube(cube.x + (int)dv.x, cube.y + (int)dv.y, cube.z + (int)dv.z);
 				if ((alignedCube != null) && alignedCube.IsNavigable)
 				{
-					//Vector3 n2EdgePos = alignedCube.NavPosition + new Vector3(-0.5f, 0, 0f);;
-					//Vector3 dir = (n2EdgePos - n1EdgePos).normalized;
-
+					//Exclude commonly occluded cubes
+					if ((i == 1) && this.IsCubeAt(alignedCube.x-1, alignedCube.y, alignedCube.z))
+					{
+						continue;
+					}
+					else if ((i == -1) && this.IsCubeAt(alignedCube.x+1, alignedCube.y, alignedCube.z))
+					{
+						continue;
+					}
+					
 					alignedCubes.Add(alignedCube);
 					vectorUsed[j] = true;
 					//Debug.LogError("alignedCube FOUND for " + dv.ToString());
