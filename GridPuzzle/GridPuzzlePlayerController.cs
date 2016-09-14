@@ -904,4 +904,27 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 			this.angle = newAngle;
 		}
 	}
+
+	public void OnCameraLayerChange(GridPuzzleCamera.Angle newAngle)
+	{
+		if (this.anim != null)
+		{
+			if (newAngle == GridPuzzleCamera.Angle.Isometric)
+			{
+				int layer = LayerMask.NameToLayer("PuzzleFront");
+				if (this.anim.gameObject.layer != layer)
+				{
+					this.anim.gameObject.layer = layer;	
+				}
+			}
+			else
+			{
+				int layer = LayerMask.NameToLayer("PuzzleMain");
+				if (this.anim.gameObject.layer != layer)
+				{
+					this.anim.gameObject.layer = layer;	
+				}
+			}
+		}
+	}
 }

@@ -38,6 +38,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 	public CameraPerspectiveEditor editor; 
 
 	public Camera cam;
+	public Camera frontCam;
 
 	public GridPuzzlePlayerController player;
 	private float playerStartX;
@@ -51,7 +52,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 
 		this.settings[Angle.Side2D] = new GridPuzzleCameraSettings();
 		this.settings[Angle.Side2D].orthographicSize = 4f;
-		this.settings[Angle.Side2D].orthographicSizeMax = 8.35f;
+		this.settings[Angle.Side2D].orthographicSizeMax = 9.35f;
 		this.settings[Angle.Side2D].cameraPosition = new Vector3(-0.52f, -0.28f, -8f);
 		this.settings[Angle.Side2D].cameraRotation = Quaternion.identity;
 		this.settings[Angle.Side2D].nearPlane = 0.1f;
@@ -60,7 +61,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 
 		this.settings[Angle.Isometric] = new GridPuzzleCameraSettings();
 		this.settings[Angle.Isometric].orthographicSize = 4.45f;
-		this.settings[Angle.Isometric].orthographicSizeMax = 8.8f;
+		this.settings[Angle.Isometric].orthographicSizeMax = 9.8f;
 		this.settings[Angle.Isometric].cameraPosition = new Vector3(-4.84f, 3f, -4.96f);
 		this.settings[Angle.Isometric].cameraRotation = Quaternion.Euler(new Vector3(0f, 45f, 0f));
 		this.settings[Angle.Isometric].nearPlane = 0.1f;
@@ -96,7 +97,27 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 
 			this.editor.lensShift = new Vector2(0f, to.verticalLensShift);
 
+			this.ApplyMainCameraToOthers();
+
 			this.currentAngle = this.desiredAngle;
+		}
+	}
+
+	public void ApplyMainCameraToOthers()
+	{
+		if ((this.frontCam != null) && (this.cam != null))
+		{
+			this.frontCam.orthographicSize = this.cam.orthographicSize;
+			this.frontCam.transform.position = this.cam.transform.position;
+			this.frontCam.transform.rotation = this.cam.transform.rotation;
+			this.frontCam.nearClipPlane = this.cam.nearClipPlane;
+			this.frontCam.farClipPlane = this.cam.farClipPlane;
+
+			CameraPerspectiveEditor otherEditor = this.frontCam.GetComponent<CameraPerspectiveEditor>();
+			if ((otherEditor != null) && (this.editor != null))
+			{
+				otherEditor.lensShift = this.editor.lensShift;
+			}
 		}
 	}
 
@@ -167,6 +188,17 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 				}
 			}
 
+			if (this.player != null)
+			{
+				if (t > 0.5f)
+				{
+					this.player.OnCameraLayerChange(this.desiredAngle);
+				}
+				else
+				{
+					this.player.OnCameraLayerChange(this.currentAngle);
+				}
+			}
 		}
 		else 
 		{
@@ -178,6 +210,11 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 			if (!isPlayerMoving)
 			{
 				UpdateCameraPosition(this.currentAngle);
+			}
+
+			if (this.player != null)
+			{
+				this.player.OnCameraLayerChange(this.currentAngle);
 			}
 		}
 	}
@@ -197,6 +234,8 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 			float orthographicSizeTarget = orthographicSizeCurrent + (orthographicSizeCurrent * (1.0f - deltaScale));
 
 			this.cam.orthographicSize = Mathf.Min(orthographicSizeTarget, orthographicSizeMax);
+
+			this.ApplyMainCameraToOthers();
 
 			this.isUpdatingManually = true;
 		}
@@ -273,6 +312,8 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 
 			//this.cam.nearClipPlane = Mathf.Lerp(_from.nearPlane, _to.nearPlane, t);
 			//this.cam.farClipPlane = Mathf.Lerp(_from.farPlane, _to.farPlane, t);
+
+			this.ApplyMainCameraToOthers();
 		}
 	}
 
@@ -295,6 +336,8 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 			{
 				this.cam.orthographicSize = Mathf.MoveTowards(this.cam.orthographicSize, _from.orthographicSize, 5.0f*Time.deltaTime);
 			}
+
+			this.ApplyMainCameraToOthers();
 		}
 	}
 
@@ -337,6 +380,8 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 			{
 				this.cam.transform.position = Vector3.MoveTowards(this.cam.transform.position, fromFinal, 4.0f*Time.deltaTime);
 			}
+
+			this.ApplyMainCameraToOthers();
 		}
 	}
 

@@ -247,6 +247,11 @@ public class GridPuzzle : MessengerListener
 
 	public Vector3 GetPerspectiveAlignedCubeVector(GridPuzzleCube cube, GridPuzzleCube alignedCube)
 	{
+		if ((cube == null) || (alignedCube == null))
+		{
+			return Vector3.zero;
+		}
+
 		Vector3 deltaVector = new Vector3(1,-1,1);
 		Vector3 c = cube.GridPositon;
 		Vector3 ac = alignedCube.GridPositon;
