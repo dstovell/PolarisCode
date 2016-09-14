@@ -433,6 +433,14 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 			this.mover.speed *= 0.5f;
 			obj.tag = "Done";
 		}
+
+		GameObject nextObj = ((currentPoint+1) < this.currentPath.waypoints.Length) ? this.currentPath.waypoints[currentPoint+1].gameObject : null;
+		if ((nextObj != null) && (nextObj.tag == "Teleport"))
+		{
+			//Debug.LogError("GenerateFullPath Teleport from=" + this.transform.position.ToString() + " to="+ obj.transform.position.ToString());
+			this.mover.GoToWaypoint(currentPoint+1);
+			nextObj.tag = "Done";
+		}
 	}
 
 	void LateUpdate()
@@ -582,8 +590,9 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		return 	( isOneZero && isOneOne );
 	}
 
-	public Transition GetTransitionType(GridPuzzleNavigable n1, GridPuzzleNavigable n2)
+	public Transition GetTransitionType(GridPuzzleNavigable n1, GridPuzzleNavigable n2, ref Vector3 alignmentVector)
 	{
+		alignmentVector = Vector3.zero;
 		Vector3 deltaDir = n2.NavPosition - n1.NavPosition;
 		Vector3 clamped = new Vector3(Mathf.RoundToInt(deltaDir.x), Mathf.RoundToInt(deltaDir.y), Mathf.RoundToInt(deltaDir.z));
 
@@ -613,7 +622,7 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		if (tt == Transition.Unknown)
 		{
 			//Perspective Transitions
-			Vector3 alignmentVector = this.parentPuzzle.GetPerspectiveAlignedCubeVector(n1 as GridPuzzleCube, n2 as GridPuzzleCube);
+			alignmentVector = this.parentPuzzle.GetPerspectiveAlignedCubeVector(n1 as GridPuzzleCube, n2 as GridPuzzleCube);
 			//Debug.LogError("GetTransitionType alignmentVector=" + alignmentVector.ToString());
 			if (alignmentVector.y > 0)
 			{
@@ -634,10 +643,24 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		return tt;
 	}
 
-	public List<Vector3> GetTransitionPath(GridPuzzleNavigable n1, GridPuzzleNavigable n2)
+	public List<Vector3> GetTransitionPath(GridPuzzleNavigable n1, GridPuzzleNavigable n2, ref bool teleportToFirstPos)
 	{
 		List<Vector3> pointsToAdd = new List<Vector3>();
-		Transition tt = this.GetTransitionType(n1, n2);
+
+		Vector3 alignmentVector = Vector3.zero;
+		Transition tt = this.GetTransitionType(n1, n2, ref alignmentVector);
+		bool isPerspectiveTransition = (alignmentVector != Vector3.zero);
+		Vector3 startPos = isPerspectiveTransition ? (n2.NavPosition - alignmentVector) : n1.NavPosition;
+		if (isPerspectiveTransition && (tt != Transition.Unknown))
+		{
+			teleportToFirstPos = true;
+			pointsToAdd.Add(startPos);
+		}
+		else
+		{
+			teleportToFirstPos = false;
+		}
+
 		if (tt == Transition.Unknown)
 		{
 			return pointsToAdd;
@@ -648,11 +671,11 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 		}
 		else if (tt == Transition.JumpDown)
 		{
-			Vector3 p1 = n1.NavPosition;
-			p1.x = Mathf.Lerp(n1.NavPosition.x, n2.NavPosition.x, 0.6f);
+			Vector3 p1 = startPos;
+			p1.x = Mathf.Lerp(startPos.x, n2.NavPosition.x, 0.6f);
 
-			Vector3 p2 = Vector3.Lerp(n1.NavPosition, n2.NavPosition, 0.5f);
-			p2.x = Mathf.Lerp(n1.NavPosition.x, n2.NavPosition.x, 0.9f);
+			Vector3 p2 = Vector3.Lerp(startPos, n2.NavPosition, 0.5f);
+			p2.x = Mathf.Lerp(startPos.x, n2.NavPosition.x, 0.9f);
 
 			pointsToAdd.Add(p1);
 			pointsToAdd.Add(p2);
@@ -679,10 +702,12 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 			}
 			else
 			{
-				Transition tt = this.GetTransitionType(navs[i-1], navs[i]);
+				Vector3 alignmentVector = Vector3.zero;
+				Transition tt = this.GetTransitionType(navs[i-1], navs[i], ref alignmentVector);
 				bool isClimb = (tt == Transition.ClimbUp);
 				bool isJump = ((tt == Transition.JumpDown) || (tt == Transition.JumpUp));
-				List<Vector3> tp = this.GetTransitionPath(navs[i-1], navs[i]);
+				bool teleportToFirstPos = false;
+				List<Vector3> tp = this.GetTransitionPath(navs[i-1], navs[i], ref teleportToFirstPos);
 				if (i > 1)
 				{
 					if (isJump)
@@ -700,6 +725,11 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 					GameObject pointObj = new GameObject(tt.ToString());
 					pointObj.transform.position = tp[j];
 					points.Add(pointObj.transform);
+
+					if ((j == 0) && teleportToFirstPos)
+					{
+						pointObj.tag = "Teleport";
+					}
 				}
 
 				if (isJump || isClimb)

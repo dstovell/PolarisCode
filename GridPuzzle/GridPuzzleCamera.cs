@@ -154,7 +154,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 			}
 
 			float t = this.IsManualCamera() ? Mathf.Abs(this.manualAngleT) : this.updateTime/this.TransitionTimeSeconds;
-			Debug.Log("this.updateTime=" + this.updateTime + " t=" + t);
+			//Debug.Log("this.updateTime=" + this.updateTime + " t=" + t);
 
 			UpdateCameraAngle(this.currentAngle, this.desiredAngle, t);
 			UpdateCameraZoom(this.currentAngle, this.desiredAngle, t);
