@@ -66,5 +66,9 @@ public class GridPuzzleTurnCounter : DSTools.MessengerListener
 				this.count = 0;
 			}
 		}
+		else if (id == "OnTeleportedTo")
+		{
+			this.count = 0;
+		}
 	}
 }

@@ -237,7 +237,7 @@ public class GridPuzzle : MessengerListener
 				if ((alignedCube != null) && alignedCube.IsNavigable)
 				{
 					//Exclude commonly occluded cubes
-					if ((i == 1) && this.IsCubeAt(alignedCube.x-1, alignedCube.y, alignedCube.z))
+					if ((i == 1) && (this.IsCubeAt(alignedCube.x-1, alignedCube.y, alignedCube.z) || this.IsCubeAt(alignedCube.x, alignedCube.y, alignedCube.z-1)))
 					{
 						continue;
 					}

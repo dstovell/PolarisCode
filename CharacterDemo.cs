@@ -27,7 +27,7 @@ public class CharacterDemo : MonoBehaviour
 		this.accumulatedTime += Time.deltaTime;
 		if (this.accumulatedTime > this.DemoTime)
 		{
-			SceneManager.LoadScene("Winter");
+			SceneManager.LoadScene("Poly");
 		}
 	}
 }

@@ -353,7 +353,7 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 					bool atFinalNode = (this.mover.currentPoint == (this.mover.waypoints.Length-1));
 					if (atFinalNode)
 					{
-						if (this.angle != GridPuzzleCamera.Angle.Isometric)
+						if (GridPuzzleCamera.Is2DAngle(this.angle))
 						{
 							GridPuzzleCube closestCube = (this.currentCubeRow != null) ? this.currentCubeRow.GetClosestCube(this.transform.position) : null;
 							if (closestCube != null)
@@ -939,7 +939,7 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 	{
 		if (this.anim != null)
 		{
-			if (newAngle == GridPuzzleCamera.Angle.Isometric)
+			if (GridPuzzleCamera.IsIsometricAngle(newAngle))
 			{
 				int layer = LayerMask.NameToLayer("PuzzleFront");
 				if (this.anim.gameObject.layer != layer)

@@ -89,7 +89,7 @@ public class GridPuzzleCube : GridPuzzleNavigable
 	{		
 		if (this.box != null)
 		{
-			bool enabledForAngle = (angle == GridPuzzleCamera.Angle.Isometric);
+			bool enabledForAngle = GridPuzzleCamera.IsIsometricAngle(this.angle);
 			bool enabled = (this.IsTop || GridPuzzleEditor.IsActive()) && enabledForAngle;
 			if (this.box.enabled != enabled)
 			{

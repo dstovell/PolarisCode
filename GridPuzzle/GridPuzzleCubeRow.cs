@@ -62,7 +62,7 @@ public class GridPuzzleCubeRow : GridPuzzleNavigable
 				this.box.isTrigger = false;
 			}
 
-			bool enabledForAngle = (this.angle != GridPuzzleCamera.Angle.Isometric);
+			bool enabledForAngle = GridPuzzleCamera.Is2DAngle(this.angle);
 			bool enabled = (this.IsColliderRow || GridPuzzleEditor.IsActive()) && enabledForAngle;
 			if (this.box.enabled != enabled)
 			{
@@ -306,14 +306,14 @@ public class GridPuzzleCubeRow : GridPuzzleNavigable
 	public void OnCameraAngleChange(GridPuzzleCamera.Angle _angle)
 	{
 		this.angle = _angle;
-		if (this.angle == GridPuzzleCamera.Angle.Side2D)
+		if (GridPuzzleCamera.Is2DAngle(this.angle))
 		{
 			if (this.safeZone != null)
 			{
 				//this.safeZone.box.enabled = true;
 			}
 		}
-		else if (this.angle == GridPuzzleCamera.Angle.Isometric)
+		else if (GridPuzzleCamera.IsIsometricAngle(this.angle))
 		{
 			if (this.safeZone != null)
 			{

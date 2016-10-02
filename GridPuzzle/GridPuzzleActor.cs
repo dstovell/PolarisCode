@@ -112,11 +112,11 @@ public class GridPuzzleActor : DSTools.MessengerListener
 	public int GetGraphMask(GridPuzzleCamera.Angle angle)
 	{
 		int graphMask = -1;
-		if (GridPuzzleManager.Instance.cameraAngle == GridPuzzleCamera.Angle.Side2D)
+		if (GridPuzzleCamera.Is2DAngle(GridPuzzleManager.Instance.cameraAngle))
 		{
 			graphMask = (1 << 1);
 		}
-		else if (GridPuzzleManager.Instance.cameraAngle == GridPuzzleCamera.Angle.Isometric)
+		else if (GridPuzzleCamera.IsIsometricAngle(GridPuzzleManager.Instance.cameraAngle))
 		{
 			graphMask = (1 << 0);
 		}

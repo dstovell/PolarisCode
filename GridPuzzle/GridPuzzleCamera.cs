@@ -22,6 +22,9 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		None,
 		Side2D,
 		Isometric,
+		Isometric2,
+		Isometric3,
+		Isometric4,
 		Front2D
 	}
 
@@ -51,7 +54,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		this.settings = new Dictionary<GridPuzzleCamera.Angle,GridPuzzleCameraSettings>();
 
 		this.settings[Angle.Side2D] = new GridPuzzleCameraSettings();
-		this.settings[Angle.Side2D].orthographicSize = 4f;
+		this.settings[Angle.Side2D].orthographicSize = 6f;
 		this.settings[Angle.Side2D].orthographicSizeMax = 9.35f;
 		this.settings[Angle.Side2D].cameraPosition = new Vector3(-0.52f, -0.28f, -8f);
 		this.settings[Angle.Side2D].cameraRotation = Quaternion.identity;
@@ -60,13 +63,40 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		this.settings[Angle.Side2D].verticalLensShift = 0f;
 
 		this.settings[Angle.Isometric] = new GridPuzzleCameraSettings();
-		this.settings[Angle.Isometric].orthographicSize = 4.45f;
+		this.settings[Angle.Isometric].orthographicSize = 6.45f;
 		this.settings[Angle.Isometric].orthographicSizeMax = 9.8f;
 		this.settings[Angle.Isometric].cameraPosition = new Vector3(-4.84f, 3f, -4.96f);
-		this.settings[Angle.Isometric].cameraRotation = Quaternion.Euler(new Vector3(0f, 45f, 0f));
+		this.settings[Angle.Isometric].cameraRotation = Quaternion.Euler(new Vector3(0f, 44f, 0f));
 		this.settings[Angle.Isometric].nearPlane = 0.1f;
 		this.settings[Angle.Isometric].farPlane = 50f;
 		this.settings[Angle.Isometric].verticalLensShift = -0.7f;
+
+		this.settings[Angle.Isometric2] = new GridPuzzleCameraSettings();
+		this.settings[Angle.Isometric2].orthographicSize = 6.45f;
+		this.settings[Angle.Isometric2].orthographicSizeMax = 9.8f;
+		this.settings[Angle.Isometric2].cameraPosition = new Vector3(2.5f, 3f, -4.96f);
+		this.settings[Angle.Isometric2].cameraRotation = Quaternion.Euler(new Vector3(0f, -44f, 0f));
+		this.settings[Angle.Isometric2].nearPlane = 0.1f;
+		this.settings[Angle.Isometric2].farPlane = 50f;
+		this.settings[Angle.Isometric2].verticalLensShift = -0.7f;
+
+		this.settings[Angle.Isometric3] = new GridPuzzleCameraSettings();
+		this.settings[Angle.Isometric3].orthographicSize = 6.45f;
+		this.settings[Angle.Isometric3].orthographicSizeMax = 9.8f;
+		this.settings[Angle.Isometric3].cameraPosition = new Vector3(20f, 16f, 20f);
+		this.settings[Angle.Isometric3].cameraRotation = Quaternion.Euler(new Vector3(0f, -134f, 0f));
+		this.settings[Angle.Isometric3].nearPlane = 0.1f;
+		this.settings[Angle.Isometric3].farPlane = 50f;
+		this.settings[Angle.Isometric3].verticalLensShift = -0.7f;
+
+		this.settings[Angle.Isometric4] = new GridPuzzleCameraSettings();
+		this.settings[Angle.Isometric4].orthographicSize = 6.45f;
+		this.settings[Angle.Isometric4].orthographicSizeMax = 9.8f;
+		this.settings[Angle.Isometric4].cameraPosition = new Vector3(-10f, 6f, 10f);
+		this.settings[Angle.Isometric4].cameraRotation = Quaternion.Euler(new Vector3(0f, 134f, 0f));
+		this.settings[Angle.Isometric4].nearPlane = 0.1f;
+		this.settings[Angle.Isometric4].farPlane = 50f;
+		this.settings[Angle.Isometric4].verticalLensShift = -0.7f;
 
 		if (GridPuzzleEditor.IsActive())
 		{
@@ -75,6 +105,16 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 				entry.Value.orthographicSize += 1.0f;
 			}
 		}
+	}
+
+	static public bool IsIsometricAngle(Angle a)
+	{
+		return ((a == Angle.Isometric) || (a == Angle.Isometric2)  || (a == Angle.Isometric3) || (a == Angle.Isometric4));
+	}
+
+	static public bool Is2DAngle(Angle a)
+	{
+		return ((a == Angle.Side2D) || (a == Angle.Front2D));
 	}
 
 	// Use this for initialization
@@ -139,7 +179,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 	{
 		this.player = _player;
 		this.playerStartX = this.player.transform.position.x;
-		this.playerStartY = -2f;//this.player.transform.position.y;
+		this.playerStartY = -4f;//this.player.transform.position.y;
 	}
 	
 	// Update is called once per frame
@@ -265,19 +305,90 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 				this.manualAngleT = 0f;
 			}
 		}
-		else if ((this.currentAngle == Angle.Side2D) && (deltaT > 0.0f))
+		else if (this.currentAngle == Angle.Side2D)
 		{
-			//Debug.LogError("Moving To Isometric");
-			this.desiredAngle = Angle.Isometric;
-			this.manualAngleT = 0.05f;
-			this.isUpdatingManually = true;
+			if (deltaT > 0.0f)
+			{
+				//Debug.LogError("Moving To Isometric");
+				this.desiredAngle = Angle.Isometric;
+				this.manualAngleT = 0.05f;
+				this.isUpdatingManually = true;
+			}
+			else if (deltaT < 0.0f)
+			{
+				//Debug.LogError("Moving To Isometric");
+				this.desiredAngle = Angle.Isometric2;
+				this.manualAngleT = -0.05f;
+				this.isUpdatingManually = true;
+			}
 		}
-		else if ((this.currentAngle == Angle.Isometric) && (deltaT < 0.0f))
+		else if (this.currentAngle == Angle.Isometric)
 		{
-			//Debug.LogError("Moving To Side2D");
-			this.desiredAngle = Angle.Side2D;
-			this.manualAngleT = -0.05f;
-			this.isUpdatingManually = true;
+			if (deltaT < 0.0f)
+			{
+				//Debug.LogError("Moving To Side2D");
+				this.desiredAngle = Angle.Side2D;
+				this.manualAngleT = -0.05f;
+				this.isUpdatingManually = true;
+			}
+			else if (deltaT > 0.0f)
+			{
+				//Debug.LogError("Moving To Side2D");
+				this.desiredAngle = Angle.Isometric4;
+				this.manualAngleT = 0.05f;
+				this.isUpdatingManually = true;
+			}
+		}
+		else if (this.currentAngle == Angle.Isometric2)
+		{
+			if (deltaT > 0.0f)
+			{
+				//Debug.LogError("Moving To Side2D");
+				this.desiredAngle = Angle.Side2D;
+				this.manualAngleT = 0.05f;
+				this.isUpdatingManually = true;
+			}
+			else if (deltaT < 0.0f)
+			{
+				//Debug.LogError("Moving To Side2D");
+				this.desiredAngle = Angle.Isometric3;
+				this.manualAngleT = -0.05f;
+				this.isUpdatingManually = true;
+			}
+		}
+		else if (this.currentAngle == Angle.Isometric3)
+		{			
+			if (deltaT > 0.0f)
+			{
+				//Debug.LogError("Moving To Side2D");
+				this.desiredAngle = Angle.Isometric2;
+				this.manualAngleT = 0.05f;
+				this.isUpdatingManually = true;
+			}
+			else if (deltaT < 0.0f)
+			{
+				//Debug.LogError("Moving To Side2D");
+				this.desiredAngle = Angle.Isometric4;
+				this.manualAngleT = -0.05f;
+				this.isUpdatingManually = true;
+			}
+		}
+		else if (this.currentAngle == Angle.Isometric4)
+		{			
+			if (deltaT > 0.0f)
+			{
+				//Debug.LogError("Moving To Side2D");
+				this.desiredAngle = Angle.Isometric3;
+				this.manualAngleT = 0.05f;
+				this.isUpdatingManually = true;
+			}
+			else if (deltaT < 0.0f)
+			{
+				//Debug.LogError("Moving To Side2D");
+				this.desiredAngle = Angle.Isometric;
+				this.manualAngleT = -0.05f;
+				this.isUpdatingManually = true;
+			}
 		}
 	}
 
@@ -364,6 +475,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 			}
 			Vector3 fromFinal = _from.cameraPosition;
 			fromFinal.y += deltaY;
+			//We might remove this if we ditch 2D
 			if (this.currentAngle == Angle.Isometric)
 			{
 				fromFinal.y += 0.25f*deltaX;
