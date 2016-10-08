@@ -11,6 +11,7 @@ public class GridPuzzleEditor : DSTools.MessengerListener
 	public GameObject [] sideWallPrefabs;
 
 	public GameObject existingPuzzleToEdit;
+	public GameObject rawPuzzleToEdit;
 
 	public int GridHeight;
 	public int GridWidth;
@@ -57,6 +58,18 @@ public class GridPuzzleEditor : DSTools.MessengerListener
 			GameObject obj = GameObject.Instantiate(this.existingPuzzleToEdit) as GameObject;
 			this.currentPuzzle = obj.GetComponent<GridPuzzle>();
 		}
+		else if (this.rawPuzzleToEdit != null)
+		{
+			GameObject obj = GameObject.Instantiate(this.rawPuzzleToEdit) as GameObject;
+			this.currentPuzzle = obj.AddComponent<GridPuzzle>();
+			BoxCollider box = obj.GetComponent<BoxCollider>();
+			if (box != null)
+			{
+				this.currentPuzzle.GridHeight = Mathf.FloorToInt(box.size.y);
+				this.currentPuzzle.GridWidth = Mathf.FloorToInt(box.size.x);
+				this.currentPuzzle.GridDepth = Mathf.FloorToInt(box.size.z);
+			}
+		}
 	}
 
 	public void GeneratePrefab()
@@ -78,7 +91,15 @@ public class GridPuzzleEditor : DSTools.MessengerListener
 	{
 		if (this.currentPuzzle != null)
 		{
-			this.currentPuzzle.Fix();
+			if (this.currentPuzzle.rows != null)
+			{
+				this.currentPuzzle.DiscoverRows();
+			}
+			else
+			{
+				this.currentPuzzle.DiscoverCubes();
+				//this.currentPuzzle.Scan(AstarPath.active);
+			}
 		}
 	}
 

@@ -320,17 +320,6 @@ public class GridPuzzleCubeRow : GridPuzzleNavigable
 				//this.safeZone.box.enabled = false;
 			}
 		}
-
-		if ((this.cubes != null) && (this.cubes.Length > 0))
-		{
-			for (int i=0; i<this.cubes.Length; i++)
-			{
-				if (this.cubes[i] != null)
-				{
-					this.cubes[i].OnCameraAngleChange(this.angle);
-				}
-			}
-		}
 	}
 
 	void OnCollisionEnter(Collision collisionInfo) 

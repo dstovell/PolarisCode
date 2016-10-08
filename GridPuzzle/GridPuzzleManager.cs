@@ -194,7 +194,7 @@ public class GridPuzzleManager : DSTools.MessengerListener
 			return null;
 		}
 
-		puzzle.Fix();
+		puzzle.DiscoverCubes();
 
 		if ((puzzle.spawnPoint != null) && (puzzle.exitPoint != null))
 		{

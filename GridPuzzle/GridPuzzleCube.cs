@@ -44,6 +44,19 @@ public class GridPuzzleCube : GridPuzzleNavigable
 
 	public Vector3 GridPositon;
 
+	public void SetGridPosition(Vector3 gp)
+	{
+		this.SetGridPosition(Mathf.FloorToInt(gp.x), Mathf.FloorToInt(gp.y), Mathf.FloorToInt(gp.z));
+	}
+
+	public void SetGridPosition(int x, int y, int z)
+	{
+		this.x = x;
+		this.y = y;
+		this.z = z;
+		this.GridPositon = new Vector3(x,y,z);
+	}
+
 	static public Vector3 GetSufaceNormal(GameObject surface)
 	{
 		return surface.transform.up;
@@ -210,10 +223,7 @@ public class GridPuzzleCube : GridPuzzleNavigable
 		BoxCollider cubeBox = cubeObj.GetComponent<BoxCollider>(); 
 		cubeBox.size = Vector3.one;
 
-		cube.x = gridX;
-		cube.y = gridY;
-		cube.z = gridZ;
-		cube.GridPositon = new Vector3(gridX, gridY, gridZ);
+		cube.SetGridPosition(gridX, gridY, gridZ);
 
 		return cube;
 	}

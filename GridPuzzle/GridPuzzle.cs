@@ -134,6 +134,12 @@ public class GridPuzzle : MessengerListener
 
 	public List<GridPuzzleCubeRow> GetCubeRowsByNavPoints(List<Vector3> navPoints)
 	{
+		List<GridPuzzleCubeRow> rows = new List<GridPuzzleCubeRow>();
+		if (this.rows == null)
+		{
+			return rows;
+		}
+
 		Dictionary<Vector3, GridPuzzleCubeRow> rowMap = new Dictionary<Vector3, GridPuzzleCubeRow>();
 		for (int x=0; x<this.rows.Length; x++)
 		{
@@ -153,7 +159,6 @@ public class GridPuzzle : MessengerListener
 			}
 		}
 
-		List<GridPuzzleCubeRow> rows = new List<GridPuzzleCubeRow>();
 		for (int i=0; i<navPoints.Count; i++)
 		{
 			if (rowMap.ContainsKey(navPoints[i]))
@@ -454,6 +459,11 @@ public class GridPuzzle : MessengerListener
 
 	private void SetupSide2dNavPoints(bool tagOnly = false)
 	{
+		if (this.rows == null)
+		{
+			return;
+		}
+
 		int pointsAdded = 0;
 
 		for (int i=0; i<this.rows.Length; i++)
@@ -587,7 +597,7 @@ public class GridPuzzle : MessengerListener
 		}
 	}
 
-	public void Fix()
+	public void DiscoverCubes()
 	{
 		if ((this.GridWidth == 0) || (this.GridHeight == 0) || (this.GridDepth == 0))
 		{
@@ -595,15 +605,47 @@ public class GridPuzzle : MessengerListener
 			return;
 		}
 
-		Debug.Log("Attemping to add cubes to a puzzle with no cubeGrid, building from strored settings");
 		this.cubeGrid = new GridPuzzleCube[this.GridWidth, this.GridHeight, this.GridDepth];
 
-		int rowsMissing = 0;
-		int rowsRemoved = 0;
+		GridPuzzleCube [] cubes = this.gameObject.GetComponentsInChildren<GridPuzzleCube>();
+
 		int cubesAdded = 0;
-		List<GridPuzzleCubeRow> rowList = new List<GridPuzzleCubeRow>();
+		for (int i=0; i<cubes.Length; i++)
+		{
+			GridPuzzleCube cube = cubes[i];
+			if (cube != null)
+			{
+				Vector3 localPos = cube.transform.localPosition;
+				int x = Mathf.FloorToInt( (localPos.x + 0.5f*this.GridWidth) / this.GridCubeSize );
+				int y = Mathf.FloorToInt( localPos.y / this.GridCubeSize );
+				int z = Mathf.FloorToInt( (localPos.z + 0.5f*this.GridDepth) / this.GridCubeSize );
+				Debug.Log("cube added at " + x + "," + y + "," + z);
+				cube.SetGridPosition(x, y, z);
+				this.cubeGrid[x, y, z] = cube;
+				cubesAdded++;
+			}
+		}
+
+		Debug.Log("DiscoverCubes cubesAdded=" + cubesAdded);
+	}
+
+	public void DiscoverRows()
+	{
+		if ((this.GridWidth == 0) || (this.GridHeight == 0) || (this.GridDepth == 0))
+		{
+			Debug.LogError("Attemping to add cubes to a puzzle with no cubeGrid or stored settings");
+			return;
+		}
+
 		if (this.rows != null)
 		{
+			this.cubeGrid = new GridPuzzleCube[this.GridWidth, this.GridHeight, this.GridDepth];
+
+			int rowsMissing = 0;
+			int rowsRemoved = 0;
+			int cubesAdded = 0;
+			List<GridPuzzleCubeRow> rowList = new List<GridPuzzleCubeRow>();
+
 			for (int i=0; i<this.rows.Length; i++)
 			{
 				GridPuzzleCubeRow row = this.rows[i];
@@ -627,11 +669,10 @@ public class GridPuzzle : MessengerListener
 					rowsMissing++;
 				}
 			}
+
+			this.rows = rowList.ToArray();
+			Debug.Log("Fix rowsMissing=" + rowsMissing + " rowsRemoved=" + rowsRemoved + " cubesAdded=" + cubesAdded);
 		}
-
-		this.rows = rowList.ToArray();
-
-		Debug.Log("Fix rowsMissing=" + rowsMissing + " rowsRemoved=" + rowsRemoved + " cubesAdded=" + cubesAdded);
 	}
 
 	public bool HasRelativeNeighbour(GridPuzzleCube cube, Vector3 dir)
@@ -729,6 +770,24 @@ public class GridPuzzle : MessengerListener
 					if (this.rows[i] != null)
 					{
 						this.rows[i].OnCameraAngleChange(angle);
+					}
+				}
+			}
+
+			if (this.cubeGrid != null)
+			{
+				for (int x=0; x<this.cubeGrid.GetLength(0); x++)
+				{
+					for (int y=0; y<this.cubeGrid.GetLength(1); y++)
+					{
+						for (int z=0; z<this.cubeGrid.GetLength(2); z++)
+						{
+							GridPuzzleCube cube = this.GetCube(x,y,z);
+							if (cube != null)
+							{
+								cube.OnCameraAngleChange(angle);
+							}
+						}
 					}
 				}
 			}
@@ -862,6 +921,11 @@ public class GridPuzzle : MessengerListener
 
 	public GridPuzzleCubeRow GetRow(int x, int y)
 	{
+		if (this.rows == null)
+		{
+			return null;
+		}
+
 		for (int i=0; i<this.rows.Length; i++)
 		{
 			GridPuzzleCubeRow row = this.rows[i];
