@@ -44,6 +44,16 @@ public class GridPuzzleCube : GridPuzzleNavigable
 
 	public Vector3 GridPositon;
 
+	public GridPuzzleCube [] Neighbours;
+
+	public bool HasManualNeighbours
+	{
+		get
+		{
+			return ((this.Neighbours != null) && (this.Neighbours.Length > 0));
+		}
+	}
+
 	public void SetGridPosition(Vector3 gp)
 	{
 		this.SetGridPosition(Mathf.FloorToInt(gp.x), Mathf.FloorToInt(gp.y), Mathf.FloorToInt(gp.z));
@@ -108,7 +118,7 @@ public class GridPuzzleCube : GridPuzzleNavigable
 			{
 				this.box.enabled = enabled;
 			}
-			this.box.isTrigger = false;
+			this.box.isTrigger = true;
 
 			if (GridPuzzleEditor.IsActive())
 			{
@@ -235,7 +245,12 @@ public class GridPuzzleCube : GridPuzzleNavigable
 
 	void OnTriggerEnter(Collider other)
     {
-		//this means death...i would assume
+		GameObject obj = other.gameObject;
+		GridPuzzlePlayerController player = obj.GetComponent<GridPuzzlePlayerController>();
+		if (player != null)
+		{
+			player.currentCube = this;
+		}
     }
 
 

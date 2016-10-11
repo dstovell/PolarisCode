@@ -15,10 +15,17 @@ public class GridPuzzleNavigable : GridPuzzleMagnetic
 	{
 		get
 		{
-			return this.gameObject.transform.position + 0.5f*Vector3.up;
+			if (this.NavPoint != null)
+			{
+				return this.NavPoint.transform.position;
+			}
+			else
+			{
+				return this.gameObject.transform.position + 0.5f*Vector3.up;
+			}
 		}
 	}
 
-	public GameObject NavPoint;
+	public GameObject NavPoint = null;
 }
 

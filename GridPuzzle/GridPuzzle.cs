@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using DSTools;
 using Pathfinding;
 
@@ -437,7 +438,7 @@ public class GridPuzzle : MessengerListener
 								pointsAdded++;
 							}
 							cube.NavGridIndex = node.NodeIndex;
-							cubeNavLinks.Add( node.NodeIndex, new CubeNavLink(node, cube) );
+							cubeNavLinks[node.NodeIndex] = new CubeNavLink(node, cube);
 						}
 
 						BoxCollider	box = cube.gameObject.GetComponent<BoxCollider>();
@@ -505,6 +506,11 @@ public class GridPuzzle : MessengerListener
 
 	private int LinkCubes(GridPuzzleCube cube, PointNode cubeNode, List<GridPuzzleCube> linkedCubes, float cost)
 	{
+		if (cube.HasManualNeighbours)
+		{
+			cubeNode.ClearConnections(true);
+		}
+
 		int cubesLinked = 0;
 		for (int j=0; j<linkedCubes.Count; j++)
 		{
@@ -555,7 +561,7 @@ public class GridPuzzle : MessengerListener
 
 						cubesLinked += this.LinkCubes(cube, node, this.GetNavNeighbours(cube), 1);
 
-						cubesLinkedPerspective += this.LinkCubes(cube, node, this.GetPerspectiveAlignedCubes(cube), 3);
+						//cubesLinkedPerspective += this.LinkCubes(cube, node, this.GetPerspectiveAlignedCubes(cube), 3);
 					}
 				}
 			}
@@ -615,9 +621,9 @@ public class GridPuzzle : MessengerListener
 			GridPuzzleCube cube = cubes[i];
 			if (cube != null)
 			{
-				Vector3 localPos = cube.transform.localPosition;
+				Vector3 localPos = cube.transform.position - cube.transform.root.position;
 				int x = Mathf.FloorToInt( (localPos.x + 0.5f*this.GridWidth) / this.GridCubeSize );
-				int y = Mathf.FloorToInt( localPos.y / this.GridCubeSize );
+				int y = Mathf.FloorToInt( (localPos.y + 0.5f*this.GridHeight) / this.GridCubeSize );
 				int z = Mathf.FloorToInt( (localPos.z + 0.5f*this.GridDepth) / this.GridCubeSize );
 				Debug.Log("cube added at " + x + "," + y + "," + z);
 				cube.SetGridPosition(x, y, z);
@@ -714,8 +720,15 @@ public class GridPuzzle : MessengerListener
 		return list;
 	}
 
+
 	public List<GridPuzzleCube> GetNavNeighbours(GridPuzzleCube cube)
 	{
+		if (cube.HasManualNeighbours)
+		{
+			//Debug.LogError("GetNavNeighbours cube=" + cube.gameObject.name + " count=" + cube.Neighbours.Length);
+			return cube.Neighbours.ToList<GridPuzzleCube>();
+		}
+
 		List<Vector3> dirs = new List<Vector3>();
 		dirs.Add(Vector3.left);
 		dirs.Add(Vector3.right);

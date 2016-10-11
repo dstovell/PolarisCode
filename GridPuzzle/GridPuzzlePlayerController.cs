@@ -844,16 +844,19 @@ public class GridPuzzlePlayerController : GridPuzzleNavigable
 
 		this.moverStarted = false;
 
-		GameObject secondNavPoint = this.currentPath.waypoints[1].gameObject;
-		Transition firstTransition = this.GetTransitionTypeOfPoint(secondNavPoint);
-		//Debug.LogError("secondNavPoint name=" + secondNavPoint.name + " firstTransition=" + firstTransition.ToString());
-		if ((firstTransition == Transition.ClimbUp) || (firstTransition == Transition.ClimbDown))
+		if (this.currentPath.waypoints.Length > 1)
 		{
-			s = State.Climb;
-		}
-		else if ((firstTransition == Transition.JumpUp) || (firstTransition == Transition.JumpDown))
-		{
-			s = State.Jump;
+			GameObject secondNavPoint = this.currentPath.waypoints[1].gameObject;
+			Transition firstTransition = this.GetTransitionTypeOfPoint(secondNavPoint);
+			//Debug.LogError("secondNavPoint name=" + secondNavPoint.name + " firstTransition=" + firstTransition.ToString());
+			if ((firstTransition == Transition.ClimbUp) || (firstTransition == Transition.ClimbDown))
+			{
+				s = State.Climb;
+			}
+			else if ((firstTransition == Transition.JumpUp) || (firstTransition == Transition.JumpDown))
+			{
+				s = State.Jump;
+			}
 		}
 
 		this.SetState(s);
