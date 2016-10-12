@@ -9,7 +9,7 @@ public class GridPuzzleTurnCounter : DSTools.MessengerListener
 
 	public Text text;
 
-	private GridPuzzleCamera.Angle angle = GridPuzzleCamera.Angle.Side2D;
+	private GridPuzzleCamera.Angle angle = GridPuzzleCamera.Angle.Isometric;
 
 	void Awake()
 	{

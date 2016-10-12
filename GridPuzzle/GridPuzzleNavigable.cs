@@ -5,7 +5,7 @@ public class GridPuzzleNavigable : GridPuzzleMagnetic
 {
 	public GridPuzzle parentPuzzle;
 
-	public GridPuzzleCamera.Angle angle = GridPuzzleCamera.Angle.Side2D;
+	public GridPuzzleCamera.Angle angle = GridPuzzleCamera.Angle.Isometric;
 
 	public bool IsNavigable = true;
 

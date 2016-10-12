@@ -1032,7 +1032,7 @@ public class GridPuzzle : MessengerListener
 		portal2.gameObject.name = "portalExit";
 		puzzle.exitPoint = portal2;
 
-		puzzle.OnCameraAngleChange(GridPuzzleCamera.Angle.Side2D);
+		puzzle.OnCameraAngleChange(GridPuzzleCamera.Angle.Isometric);
 
 		return puzzle;
 	}

@@ -73,7 +73,7 @@ public class GridPuzzleManager : DSTools.MessengerListener
 	{
 		Instance = this;
 
-		this.cameraAngle = GridPuzzleCamera.Angle.Side2D;
+		this.cameraAngle = GridPuzzleCamera.Angle.Isometric;
 
 		this.PuzzleHeight = 1f * (float)this.GridHeight;
 		this.PuzzleWidth = 1f * (float)this.GridWidth;
