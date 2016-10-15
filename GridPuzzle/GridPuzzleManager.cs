@@ -272,6 +272,7 @@ public class GridPuzzleManager : DSTools.MessengerListener
 		{
 			this.LoadPuzzle( this.PickRandomPrefab(this.puzzlePrefabs), PuzzlePosition.Current );
 			this.SetupPathfinding( this.GetPuzzle(PuzzlePosition.Current) );
+			this.SendMessengerMsg("CurrentPuzzleUpdated", this.GetPuzzle(PuzzlePosition.Current));
 		}
 
 //		if (!this.puzzlePositions.ContainsKey(PuzzlePosition.Top))

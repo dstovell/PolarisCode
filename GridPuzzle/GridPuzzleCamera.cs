@@ -6,13 +6,34 @@ public class GridPuzzleCameraSettings
 {
 	public float orthographicSize;
 	public float orthographicSizeMax;
+	public float cameraCircleAngle;
 	public float nearPlane;
 	public float farPlane;
 
-	public Vector3 cameraPosition;
-	public Quaternion cameraRotation;
-
 	public float verticalLensShift;
+
+	public Vector3 GetCameraPositon(Vector3 center)
+	{
+		float radius = 20.0f;
+		float height = 15.0f;
+
+		float theta = this.cameraCircleAngle * Mathf.Deg2Rad;
+
+		Vector3 pos = new Vector3();
+		pos.x = radius * Mathf.Cos(theta);
+		pos.z = radius * Mathf.Sin(theta);
+		pos.y = height;
+
+		return pos + center;
+	}
+
+	public Quaternion GetCameraRotation(Vector3 center)
+	{
+		Vector3 pos = this.GetCameraPositon(center);
+		Vector3 dir = (center - pos).normalized;
+		dir.y = 0;
+		return Quaternion.LookRotation(dir, Vector3.up);
+	}
 }
 
 public class GridPuzzleCamera : DSTools.MessengerListener
@@ -44,47 +65,46 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 	public Camera frontCam;
 
 	public GridPuzzlePlayerController player;
-	private float playerStartX;
-	private float playerStartY;
+
+	public GridPuzzle currentPuzzle;
 
 	private Dictionary<GridPuzzleCamera.Angle,GridPuzzleCameraSettings> settings;
 
 	void Awake()
 	{
+		float orthographicSize = 4.2f;
+		float orthographicSizeMax = 9.8f;
+
 		this.settings = new Dictionary<GridPuzzleCamera.Angle,GridPuzzleCameraSettings>();
 
 		this.settings[Angle.Isometric] = new GridPuzzleCameraSettings();
-		this.settings[Angle.Isometric].orthographicSize = 4.45f;
-		this.settings[Angle.Isometric].orthographicSizeMax = 9.8f;
-		this.settings[Angle.Isometric].cameraPosition = new Vector3(-4.84f, 3f, -4.96f);
-		this.settings[Angle.Isometric].cameraRotation = Quaternion.Euler(new Vector3(0f, 44f, 0f));
+		this.settings[Angle.Isometric].orthographicSize = orthographicSize;
+		this.settings[Angle.Isometric].orthographicSizeMax = orthographicSizeMax;
+		this.settings[Angle.Isometric].cameraCircleAngle = 45f;
 		this.settings[Angle.Isometric].nearPlane = 0.1f;
 		this.settings[Angle.Isometric].farPlane = 50f;
 		this.settings[Angle.Isometric].verticalLensShift = -0.7f;
 
 		this.settings[Angle.Isometric2] = new GridPuzzleCameraSettings();
-		this.settings[Angle.Isometric2].orthographicSize = 4.45f;
-		this.settings[Angle.Isometric2].orthographicSizeMax = 9.8f;
-		this.settings[Angle.Isometric2].cameraPosition = new Vector3(2.5f, 3f, -4.96f);
-		this.settings[Angle.Isometric2].cameraRotation = Quaternion.Euler(new Vector3(0f, -44f, 0f));
+		this.settings[Angle.Isometric2].orthographicSize = orthographicSize;
+		this.settings[Angle.Isometric2].orthographicSizeMax = orthographicSizeMax;
+		this.settings[Angle.Isometric2].cameraCircleAngle = 315f;
 		this.settings[Angle.Isometric2].nearPlane = 0.1f;
 		this.settings[Angle.Isometric2].farPlane = 50f;
 		this.settings[Angle.Isometric2].verticalLensShift = -0.7f;
 
 		this.settings[Angle.Isometric3] = new GridPuzzleCameraSettings();
-		this.settings[Angle.Isometric3].orthographicSize = 4.45f;
-		this.settings[Angle.Isometric3].orthographicSizeMax = 9.8f;
-		this.settings[Angle.Isometric3].cameraPosition = new Vector3(20f, 16f, 20f);
-		this.settings[Angle.Isometric3].cameraRotation = Quaternion.Euler(new Vector3(0f, -134f, 0f));
+		this.settings[Angle.Isometric3].orthographicSize = orthographicSize;
+		this.settings[Angle.Isometric3].orthographicSizeMax = orthographicSizeMax;
+		this.settings[Angle.Isometric3].cameraCircleAngle = 225f;
 		this.settings[Angle.Isometric3].nearPlane = 0.1f;
 		this.settings[Angle.Isometric3].farPlane = 50f;
 		this.settings[Angle.Isometric3].verticalLensShift = -0.7f;
 
 		this.settings[Angle.Isometric4] = new GridPuzzleCameraSettings();
-		this.settings[Angle.Isometric4].orthographicSize = 4.45f;
-		this.settings[Angle.Isometric4].orthographicSizeMax = 9.8f;
-		this.settings[Angle.Isometric4].cameraPosition = new Vector3(-10f, 6f, 10f);
-		this.settings[Angle.Isometric4].cameraRotation = Quaternion.Euler(new Vector3(0f, 134f, 0f));
+		this.settings[Angle.Isometric4].orthographicSize = orthographicSize;
+		this.settings[Angle.Isometric4].orthographicSizeMax = orthographicSizeMax;
+		this.settings[Angle.Isometric4].cameraCircleAngle = 135f;
 		this.settings[Angle.Isometric4].nearPlane = 0.1f;
 		this.settings[Angle.Isometric4].farPlane = 50f;
 		this.settings[Angle.Isometric4].verticalLensShift = -0.7f;
@@ -121,8 +141,8 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		if ((this.cam != null) && (to != null))
 		{
 			this.cam.orthographicSize = to.orthographicSize;
-			this.cam.transform.position = to.cameraPosition;
-			this.cam.transform.rotation = to.cameraRotation;
+			this.cam.transform.position = to.GetCameraPositon(this.GetCenter());
+			this.cam.transform.rotation = to.GetCameraRotation(this.GetCenter());
 			this.cam.nearClipPlane = to.nearPlane;
 			this.cam.farClipPlane = to.farPlane;
 
@@ -169,8 +189,11 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 	private void AssignPlayer(GridPuzzlePlayerController _player)
 	{
 		this.player = _player;
-		this.playerStartX = this.player.transform.position.x;
-		this.playerStartY = -4f;//this.player.transform.position.y;
+	}
+
+	private void AssignPuzzle(GridPuzzle _puzzle)
+	{
+		this.currentPuzzle = _puzzle;
 	}
 	
 	// Update is called once per frame
@@ -378,6 +401,18 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		return this.isUpdatingManually;
 	}
 
+	public Vector3 GetCenter()
+	{
+		if (this.currentPuzzle != null)
+		{
+			Vector3 center = this.currentPuzzle.transform.position;
+			center.y = (this.player != null) ? this.player.transform.position.y : center.y;
+			return center;
+		}
+
+		return (this.player != null) ? this.player.transform.position : Vector3.zero;
+	}
+
 	public void UpdateCameraAngle(GridPuzzleCamera.Angle fromAngle, GridPuzzleCamera.Angle toAngle, float t)
 	{
 		GridPuzzleCameraSettings _from = this.settings[fromAngle];
@@ -391,7 +426,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		{
 			this.cam.orthographicSize = Mathf.Lerp(_from.orthographicSize, _to.orthographicSize, t);
 
-			this.cam.transform.rotation = Quaternion.Lerp(_from.cameraRotation, _to.cameraRotation, t);
+			this.cam.transform.rotation = Quaternion.Lerp(_from.GetCameraRotation(this.GetCenter()), _to.GetCameraRotation(this.GetCenter()), t);
 
 			this.editor.lensShift = Vector3.Lerp(new Vector2(0f, _from.verticalLensShift), new Vector2(0f, _to.verticalLensShift), t);
 
@@ -440,25 +475,18 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 
 		if (this.cam != null)
 		{
-			float deltaX = ((this.player != null) && this.player.gameObject.activeInHierarchy) ? (this.player.transform.position.x - this.playerStartX) : 0f;
-			float deltaY = ((this.player != null) && this.player.gameObject.activeInHierarchy) ? (this.player.transform.position.y - this.playerStartY) : 0f;
+			float deltaX = 0f;
+			float deltaY = 0f;
 			if (GridPuzzleEditor.IsActive())
 			{
 				deltaY = editorX;
 				deltaY = editorY;
 			}
-			Vector3 fromFinal = _from.cameraPosition;
-			fromFinal.y += deltaY;
-			//We might remove this if we ditch 2D
-			if (this.currentAngle == Angle.Isometric)
-			{
-				fromFinal.y += 0.25f*deltaX;
-			}
+			Vector3 fromFinal = _from.GetCameraPositon(this.GetCenter());
 
 			if (_to != null)
 			{	
-				Vector3 toFinal = _to.cameraPosition;
-				toFinal.y += deltaY;
+				Vector3 toFinal = _to.GetCameraPositon(this.GetCenter());
 
 				this.cam.transform.position = Vector3.Lerp(fromFinal, toFinal, t);
 			}
@@ -496,6 +524,11 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		{
 			GridPuzzlePlayerController playerSpawned = (obj1 as GridPuzzleActor).gameObject.GetComponent<GridPuzzlePlayerController>();
 			this.AssignPlayer(playerSpawned);
+		}
+		else if (id == "CurrentPuzzleUpdated")
+		{
+			GridPuzzle newPuzzle = obj1 as GridPuzzle;
+			this.AssignPuzzle(newPuzzle);
 		}
 	}
 
