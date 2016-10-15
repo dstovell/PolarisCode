@@ -2,6 +2,32 @@
 using System.Collections;
 using System.Collections.Generic;
 
+public static class GridPuzzleCameraHelper
+{
+	public static Vector3 GetCameraPositon(Vector3 center, float angle)
+	{
+		float radius = 20.0f;
+		float height = 15.0f;
+
+		float theta = angle * Mathf.Deg2Rad;
+
+		Vector3 pos = new Vector3();
+		pos.x = radius * Mathf.Cos(theta);
+		pos.z = radius * Mathf.Sin(theta);
+		pos.y = height;
+
+		return pos + center;
+	}
+
+	public static Quaternion GetCameraRotation(Vector3 center, float angle)
+	{
+		Vector3 pos = GridPuzzleCameraHelper.GetCameraPositon(center, angle);
+		Vector3 dir = (center - pos).normalized;
+		dir.y = 0;
+		return Quaternion.LookRotation(dir, Vector3.up);
+	}
+}
+
 public class GridPuzzleCameraSettings
 {
 	public float orthographicSize;
@@ -14,25 +40,12 @@ public class GridPuzzleCameraSettings
 
 	public Vector3 GetCameraPositon(Vector3 center)
 	{
-		float radius = 20.0f;
-		float height = 15.0f;
-
-		float theta = this.cameraCircleAngle * Mathf.Deg2Rad;
-
-		Vector3 pos = new Vector3();
-		pos.x = radius * Mathf.Cos(theta);
-		pos.z = radius * Mathf.Sin(theta);
-		pos.y = height;
-
-		return pos + center;
+		return GridPuzzleCameraHelper.GetCameraPositon(center, this.cameraCircleAngle);
 	}
 
 	public Quaternion GetCameraRotation(Vector3 center)
 	{
-		Vector3 pos = this.GetCameraPositon(center);
-		Vector3 dir = (center - pos).normalized;
-		dir.y = 0;
-		return Quaternion.LookRotation(dir, Vector3.up);
+		return GridPuzzleCameraHelper.GetCameraRotation(center, this.cameraCircleAngle);
 	}
 }
 
@@ -482,13 +495,20 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 				deltaY = editorX;
 				deltaY = editorY;
 			}
+
 			Vector3 fromFinal = _from.GetCameraPositon(this.GetCenter());
 
 			if (_to != null)
-			{	
-				Vector3 toFinal = _to.GetCameraPositon(this.GetCenter());
+			{
+				float toCircleAngle = _to.cameraCircleAngle;
+				float deltaAngle = Mathf.Abs( _from.cameraCircleAngle - _to.cameraCircleAngle );
+				if (deltaAngle > 100)
+				{
+					toCircleAngle = ( _from.cameraCircleAngle > _to.cameraCircleAngle) ? (_to.cameraCircleAngle + 360): (_to.cameraCircleAngle - 360);
+				}
 
-				this.cam.transform.position = Vector3.Lerp(fromFinal, toFinal, t);
+				float currentAngle = Mathf.Lerp(_from.cameraCircleAngle, toCircleAngle, t);
+				this.cam.transform.position = GridPuzzleCameraHelper.GetCameraPositon(this.GetCenter(), currentAngle);
 			}
 			else if (this.cam.transform.position != fromFinal)
 			{
