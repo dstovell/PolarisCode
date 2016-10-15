@@ -80,7 +80,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		this.settings[Angle.Isometric] = new GridPuzzleCameraSettings();
 		this.settings[Angle.Isometric].orthographicSize = orthographicSize;
 		this.settings[Angle.Isometric].orthographicSizeMax = orthographicSizeMax;
-		this.settings[Angle.Isometric].cameraCircleAngle = 45f;
+		this.settings[Angle.Isometric].cameraCircleAngle = 225f;
 		this.settings[Angle.Isometric].nearPlane = 0.1f;
 		this.settings[Angle.Isometric].farPlane = 50f;
 		this.settings[Angle.Isometric].verticalLensShift = -0.7f;
@@ -96,7 +96,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 		this.settings[Angle.Isometric3] = new GridPuzzleCameraSettings();
 		this.settings[Angle.Isometric3].orthographicSize = orthographicSize;
 		this.settings[Angle.Isometric3].orthographicSizeMax = orthographicSizeMax;
-		this.settings[Angle.Isometric3].cameraCircleAngle = 225f;
+		this.settings[Angle.Isometric3].cameraCircleAngle = 45f;
 		this.settings[Angle.Isometric3].nearPlane = 0.1f;
 		this.settings[Angle.Isometric3].farPlane = 50f;
 		this.settings[Angle.Isometric3].verticalLensShift = -0.7f;
