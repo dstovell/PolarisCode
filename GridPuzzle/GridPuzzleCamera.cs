@@ -38,6 +38,15 @@ public class GridPuzzleCameraSettings
 
 	public float verticalLensShift;
 
+	public void InitForIsometricAngle()
+	{
+		this.orthographicSize = 4.2f;
+		this.orthographicSizeMax = 9.8f;
+		this.verticalLensShift = -0.68f;
+		this.nearPlane = 0.1f;
+		this.farPlane = 50f;
+	}
+
 	public Vector3 GetCameraPositon(Vector3 center)
 	{
 		return GridPuzzleCameraHelper.GetCameraPositon(center, this.cameraCircleAngle);
@@ -75,7 +84,7 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 	public CameraPerspectiveEditor editor; 
 
 	public Camera cam;
-	public Camera frontCam;
+	public Camera [] otherCameras;
 
 	public GridPuzzlePlayerController player;
 
@@ -85,42 +94,23 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 
 	void Awake()
 	{
-		float orthographicSize = 4.2f;
-		float orthographicSizeMax = 9.8f;
-
 		this.settings = new Dictionary<GridPuzzleCamera.Angle,GridPuzzleCameraSettings>();
 
 		this.settings[Angle.Isometric] = new GridPuzzleCameraSettings();
-		this.settings[Angle.Isometric].orthographicSize = orthographicSize;
-		this.settings[Angle.Isometric].orthographicSizeMax = orthographicSizeMax;
+		this.settings[Angle.Isometric].InitForIsometricAngle();
 		this.settings[Angle.Isometric].cameraCircleAngle = 225f;
-		this.settings[Angle.Isometric].nearPlane = 0.1f;
-		this.settings[Angle.Isometric].farPlane = 50f;
-		this.settings[Angle.Isometric].verticalLensShift = -0.7f;
 
 		this.settings[Angle.Isometric2] = new GridPuzzleCameraSettings();
-		this.settings[Angle.Isometric2].orthographicSize = orthographicSize;
-		this.settings[Angle.Isometric2].orthographicSizeMax = orthographicSizeMax;
+		this.settings[Angle.Isometric2].InitForIsometricAngle();
 		this.settings[Angle.Isometric2].cameraCircleAngle = 315f;
-		this.settings[Angle.Isometric2].nearPlane = 0.1f;
-		this.settings[Angle.Isometric2].farPlane = 50f;
-		this.settings[Angle.Isometric2].verticalLensShift = -0.7f;
 
 		this.settings[Angle.Isometric3] = new GridPuzzleCameraSettings();
-		this.settings[Angle.Isometric3].orthographicSize = orthographicSize;
-		this.settings[Angle.Isometric3].orthographicSizeMax = orthographicSizeMax;
+		this.settings[Angle.Isometric3].InitForIsometricAngle();
 		this.settings[Angle.Isometric3].cameraCircleAngle = 45f;
-		this.settings[Angle.Isometric3].nearPlane = 0.1f;
-		this.settings[Angle.Isometric3].farPlane = 50f;
-		this.settings[Angle.Isometric3].verticalLensShift = -0.7f;
 
 		this.settings[Angle.Isometric4] = new GridPuzzleCameraSettings();
-		this.settings[Angle.Isometric4].orthographicSize = orthographicSize;
-		this.settings[Angle.Isometric4].orthographicSizeMax = orthographicSizeMax;
+		this.settings[Angle.Isometric4].InitForIsometricAngle();
 		this.settings[Angle.Isometric4].cameraCircleAngle = 135f;
-		this.settings[Angle.Isometric4].nearPlane = 0.1f;
-		this.settings[Angle.Isometric4].farPlane = 50f;
-		this.settings[Angle.Isometric4].verticalLensShift = -0.7f;
 
 		if (GridPuzzleEditor.IsActive())
 		{
@@ -169,18 +159,22 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 
 	public void ApplyMainCameraToOthers()
 	{
-		if ((this.frontCam != null) && (this.cam != null))
+		if ((this.otherCameras != null) && (this.cam != null))
 		{
-			this.frontCam.orthographicSize = this.cam.orthographicSize;
-			this.frontCam.transform.position = this.cam.transform.position;
-			this.frontCam.transform.rotation = this.cam.transform.rotation;
-			this.frontCam.nearClipPlane = this.cam.nearClipPlane;
-			this.frontCam.farClipPlane = this.cam.farClipPlane;
-
-			CameraPerspectiveEditor otherEditor = this.frontCam.GetComponent<CameraPerspectiveEditor>();
-			if ((otherEditor != null) && (this.editor != null))
+			for (int i=0; i<this.otherCameras.Length; i++)
 			{
-				otherEditor.lensShift = this.editor.lensShift;
+				Camera cam = this.otherCameras[i];
+				cam.orthographicSize = this.cam.orthographicSize;
+				cam.transform.position = this.cam.transform.position;
+				cam.transform.rotation = this.cam.transform.rotation;
+				cam.nearClipPlane = this.cam.nearClipPlane;
+				cam.farClipPlane = this.cam.farClipPlane;
+
+				CameraPerspectiveEditor otherEditor = cam.GetComponent<CameraPerspectiveEditor>();
+				if ((otherEditor != null) && (this.editor != null))
+				{
+					otherEditor.lensShift = this.editor.lensShift;
+				}
 			}
 		}
 	}
@@ -416,7 +410,8 @@ public class GridPuzzleCamera : DSTools.MessengerListener
 
 	public Vector3 GetCenter()
 	{
-		if (this.currentPuzzle != null)
+		bool usePuzzle = false;
+		if (usePuzzle && (this.currentPuzzle != null))
 		{
 			Vector3 center = this.currentPuzzle.transform.position;
 			center.y = (this.player != null) ? this.player.transform.position.y : center.y;

@@ -603,6 +603,14 @@ public class GridPuzzle : MessengerListener
 		}
 	}
 
+	public bool IsValidGridPosition(int x, int y, int z)
+	{
+		return (	(this.cubeGrid.GetLength(0) > x) && 
+					(this.cubeGrid.GetLength(1) > y) && 
+					(this.cubeGrid.GetLength(2) > z) &&
+					(x >= 0) && (y >= 0) && (z >= 0)	);
+	}
+
 	public void DiscoverCubes()
 	{
 		if ((this.GridWidth == 0) || (this.GridHeight == 0) || (this.GridDepth == 0))
@@ -625,10 +633,27 @@ public class GridPuzzle : MessengerListener
 				int x = Mathf.FloorToInt( (localPos.x + 0.5f*this.GridWidth) / this.GridCubeSize );
 				int y = Mathf.FloorToInt( (localPos.y + 0.5f*this.GridHeight) / this.GridCubeSize );
 				int z = Mathf.FloorToInt( (localPos.z + 0.5f*this.GridDepth) / this.GridCubeSize );
-				Debug.Log("cube added at " + x + "," + y + "," + z);
-				cube.SetGridPosition(x, y, z);
-				this.cubeGrid[x, y, z] = cube;
-				cubesAdded++;
+				if (this.IsValidGridPosition(x, y, z))
+				{
+					//Debug.Log("cube added at " + x + "," + y + "," + z);
+					cube.SetGridPosition(x, y, z);
+					this.cubeGrid[x, y, z] = cube;
+					cubesAdded++;
+
+					if (!cube.IsNavigable)
+					{
+						cube.NavPoint = null;
+
+						for (int j=0; j<cube.transform.childCount; j++)
+						{
+							Transform child = cube.transform.GetChild(j);
+							if (child.tag.StartsWith("NavPoint"))
+							{
+								GameObject.Destroy(child.gameObject);
+							}
+						}
+					}
+				}
 			}
 		}
 
