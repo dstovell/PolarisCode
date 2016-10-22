@@ -108,6 +108,31 @@ public class GridPuzzleCube : GridPuzzleNavigable
 		}
 	}
 
+	public void DestroyNavPoint(bool immediate = false)
+	{
+		//Debug.LogError("Cube.DestroyNavPoint");
+		if (!this.IsNavigable)
+		{
+			this.NavPoint = null;
+
+			for (int j=0; j<this.transform.childCount; j++)
+			{
+				Transform child = this.transform.GetChild(j);
+				if (child.tag.StartsWith("NavPoint"))
+				{
+					if (immediate)
+					{
+						GameObject.DestroyImmediate(child.gameObject);
+					}
+					else
+					{
+						GameObject.Destroy(child.gameObject);
+					}
+				}
+			}
+		}
+	}
+
 	public void UpdateCollider()
 	{		
 		if (this.box != null)

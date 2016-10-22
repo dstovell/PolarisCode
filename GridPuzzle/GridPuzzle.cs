@@ -450,6 +450,7 @@ public class GridPuzzle : MessengerListener
 					else if (cube != null)
 					{
 						cube.IsNavigable = false;
+						cube.DestroyNavPoint(true);
 					}
 				}
 			}
@@ -642,16 +643,7 @@ public class GridPuzzle : MessengerListener
 
 					if (!cube.IsNavigable)
 					{
-						cube.NavPoint = null;
-
-						for (int j=0; j<cube.transform.childCount; j++)
-						{
-							Transform child = cube.transform.GetChild(j);
-							if (child.tag.StartsWith("NavPoint"))
-							{
-								GameObject.Destroy(child.gameObject);
-							}
-						}
+						cube.DestroyNavPoint();
 					}
 				}
 			}
